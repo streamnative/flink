@@ -17,17 +17,16 @@ package org.apache.flink.streaming.connectors.pulsar;
 import org.apache.flink.configuration.ConfigConstants;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.TaskManagerOptions;
-import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
-import org.apache.flink.connector.pulsar.source.util.TopicRange;
 import org.apache.flink.metrics.jmx.JMXReporter;
 import org.apache.flink.streaming.util.TestStreamEnvironment;
 import org.apache.flink.util.TestLogger;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -48,6 +47,8 @@ import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.common.schema.SchemaType;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.PulsarContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
@@ -67,8 +68,8 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static org.testcontainers.containers.PulsarContainer.BROKER_HTTP_PORT;
 
 /** Start / stop a Pulsar cluster. */
-@Slf4j
 public abstract class PulsarTestBase extends TestLogger {
+    private static final Logger log = LoggerFactory.getLogger(PulsarTestBase.class);
 
     protected static PulsarContainer pulsarService;
 
@@ -194,53 +195,43 @@ public abstract class PulsarTestBase extends TestLogger {
         PulsarClient client = PulsarClient.builder().serviceUrl(getServiceUrl()).build();
         switch (type) {
             case BOOLEAN:
-                producer = (Producer<T>) client.newProducer(Schema.BOOL).topic(topicName).create();
+                producer = client.newProducer(Schema.BOOL).topic(topicName).create();
                 break;
             case BYTES:
-                producer = (Producer<T>) client.newProducer(Schema.BYTES).topic(topicName).create();
+                producer = client.newProducer(Schema.BYTES).topic(topicName).create();
                 break;
             case LOCAL_DATE:
-                producer =
-                        (Producer<T>)
-                                client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
+                producer = client.newProducer(Schema.LOCAL_DATE).topic(topicName).create();
                 break;
             case DATE:
-                producer = (Producer<T>) client.newProducer(Schema.DATE).topic(topicName).create();
+                producer = client.newProducer(Schema.DATE).topic(topicName).create();
                 break;
             case STRING:
-                producer =
-                        (Producer<T>) client.newProducer(Schema.STRING).topic(topicName).create();
+                producer = client.newProducer(Schema.STRING).topic(topicName).create();
                 break;
             case TIMESTAMP:
-                producer =
-                        (Producer<T>)
-                                client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
+                producer = client.newProducer(Schema.TIMESTAMP).topic(topicName).create();
                 break;
             case LOCAL_DATE_TIME:
-                producer =
-                        (Producer<T>)
-                                client.newProducer(Schema.LOCAL_DATE_TIME)
-                                        .topic(topicName)
-                                        .create();
+                producer = client.newProducer(Schema.LOCAL_DATE_TIME).topic(topicName).create();
                 break;
             case INT8:
-                producer = (Producer<T>) client.newProducer(Schema.INT8).topic(topicName).create();
+                producer = client.newProducer(Schema.INT8).topic(topicName).create();
                 break;
             case DOUBLE:
-                producer =
-                        (Producer<T>) client.newProducer(Schema.DOUBLE).topic(topicName).create();
+                producer = client.newProducer(Schema.DOUBLE).topic(topicName).create();
                 break;
             case FLOAT:
-                producer = (Producer<T>) client.newProducer(Schema.FLOAT).topic(topicName).create();
+                producer = client.newProducer(Schema.FLOAT).topic(topicName).create();
                 break;
             case INT32:
-                producer = (Producer<T>) client.newProducer(Schema.INT32).topic(topicName).create();
+                producer = client.newProducer(Schema.INT32).topic(topicName).create();
                 break;
             case INT16:
-                producer = (Producer<T>) client.newProducer(Schema.INT16).topic(topicName).create();
+                producer = client.newProducer(Schema.INT16).topic(topicName).create();
                 break;
             case INT64:
-                producer = (Producer<T>) client.newProducer(Schema.INT64).topic(topicName).create();
+                producer = client.newProducer(Schema.INT64).topic(topicName).create();
                 break;
             case AVRO:
                 SchemaDefinition<Object> schemaDefinition =
@@ -249,15 +240,10 @@ public abstract class PulsarTestBase extends TestLogger {
                                 .withJSR310ConversionEnabled(true)
                                 .build();
                 producer =
-                        (Producer<T>)
-                                client.newProducer(Schema.AVRO(schemaDefinition))
-                                        .topic(topicName)
-                                        .create();
+                        client.newProducer(Schema.AVRO(schemaDefinition)).topic(topicName).create();
                 break;
             case JSON:
-                producer =
-                        (Producer<T>)
-                                client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
+                producer = client.newProducer(Schema.JSON(tClass)).topic(topicName).create();
                 break;
 
             default:
@@ -380,9 +366,9 @@ public abstract class PulsarTestBase extends TestLogger {
         }
     }
 
-    public static List<BrokerPartition> getPartitionsForTopic(String topic) throws Exception {
+    public static List<PartitionRange> getPartitionsForTopic(String topic) throws Exception {
         return pulsarClient.getPartitionsForTopic(topic).get().stream()
-                .map(pi -> new BrokerPartition(new TopicRange(pi, BrokerPartition.FULL_RANGE)))
+                .map(pi -> new PartitionRange(pi, PulsarRange.FULL_RANGE))
                 .collect(Collectors.toList());
     }
 

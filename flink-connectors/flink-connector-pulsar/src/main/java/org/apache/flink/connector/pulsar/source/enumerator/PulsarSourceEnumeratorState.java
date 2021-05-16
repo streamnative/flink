@@ -23,8 +23,11 @@ import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import java.util.List;
 import java.util.Map;
 
-/** The state of pulsar source enumerator. */
+/**
+ * The state of pulsar source enumerator.
+ */
 public class PulsarSourceEnumeratorState {
+
     private final Map<Integer, List<PulsarPartitionSplit>> currentAssignment;
 
     public PulsarSourceEnumeratorState(Map<Integer, List<PulsarPartitionSplit>> currentAssignment) {

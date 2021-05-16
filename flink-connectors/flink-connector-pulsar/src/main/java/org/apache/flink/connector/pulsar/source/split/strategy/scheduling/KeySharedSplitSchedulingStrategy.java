@@ -16,32 +16,37 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.split.strategy.scheduling;
 
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.connector.pulsar.source.util.SerializableRange;
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** SplitSchedulingStrategy for keyShared mode. */
+/**
+ * SplitSchedulingStrategy for keyShared mode.
+ */
 public class KeySharedSplitSchedulingStrategy implements SplitSchedulingStrategy {
+    private static final long serialVersionUID = 7248957140526275772L;
+
     public static final KeySharedSplitSchedulingStrategy INSTANCE =
             new KeySharedSplitSchedulingStrategy();
 
-    private Map<SerializableRange, Integer> rangeToReaders;
+    private final Map<PulsarRange, Integer> rangeToReaders = new HashMap<>();
+
     private int nextId = 0;
 
     private KeySharedSplitSchedulingStrategy() {
-        this.rangeToReaders = new HashMap<>();
+        // Singleton instance.
     }
 
     @Override
     public int getIndexOfReader(int numReaders, PulsarPartitionSplit split) {
-        BrokerPartition partition = (BrokerPartition) split.getPartition();
-        SerializableRange pulsarRange = partition.getTopicRange().getRange();
+        PulsarRange pulsarRange = split.getPartition().getRange();
         return rangeToReaders.computeIfAbsent(
                 pulsarRange,
                 serializableRange -> {

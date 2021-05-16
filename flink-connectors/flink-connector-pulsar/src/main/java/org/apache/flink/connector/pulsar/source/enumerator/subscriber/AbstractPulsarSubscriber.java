@@ -16,10 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.subscription;
+package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -27,21 +28,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-/** The base implementations of {@link PulsarSubscriber}. */
-public abstract class AbstractPulsarSubscriber extends PulsarSubscriber {
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+/**
+ * The base implementations of {@link PulsarSubscriber}.
+ */
+public abstract class AbstractPulsarSubscriber implements PulsarSubscriber {
+    private static final long serialVersionUID = 1721537402108912442L;
+
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+    protected SplitEnumeratorContext<PulsarPartitionSplit> context;
 
     @Override
     public PartitionChange getPartitionChanges(
-            PulsarAdmin pulsarAdmin, Set<AbstractPartition> currentAssignment)
+            PulsarAdmin pulsarAdmin, Set<PartitionRange> currentAssignment)
             throws PulsarAdminException, InterruptedException, IOException {
-        Set<AbstractPartition> newPartitions = new HashSet<>();
-        Set<AbstractPartition> removedPartitions = new HashSet<>(currentAssignment);
-        for (AbstractPartition partition : getCurrentPartitions(pulsarAdmin)) {
+        Set<PartitionRange> newPartitions = new HashSet<>();
+        Set<PartitionRange> removedPartitions = new HashSet<>(currentAssignment);
+        for (PartitionRange partition : getCurrentPartitions(pulsarAdmin)) {
             if (!removedPartitions.remove(partition)) {
                 newPartitions.add(partition);
             }
@@ -56,9 +62,12 @@ public abstract class AbstractPulsarSubscriber extends PulsarSubscriber {
                     "The following partitions have been added to the Pulsar cluster. {}",
                     newPartitions);
         }
+
         return new PartitionChange(newPartitions, removedPartitions);
     }
 
-    public abstract Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin)
-            throws PulsarAdminException, InterruptedException, IOException;
+    @Override
+    public void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context) {
+        this.context = context;
+    }
 }

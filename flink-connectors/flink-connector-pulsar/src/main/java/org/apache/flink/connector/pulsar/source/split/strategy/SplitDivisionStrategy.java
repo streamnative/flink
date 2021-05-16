@@ -16,20 +16,28 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.offset;
+package org.apache.flink.connector.pulsar.source.split.strategy;
 
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
-import org.apache.pulsar.client.api.MessageId;
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminException;
+import org.apache.pulsar.client.api.Range;
 
-/** An implementation of {@link StartOffsetInitializer} for external subscription. */
-public class ExternalSubscriptionStartOffsetInitializer implements StartOffsetInitializer {
-    private final MessageId defaultOffset;
-    private final String subscriptionName;
+import java.io.Serializable;
+import java.util.Collection;
 
-    public ExternalSubscriptionStartOffsetInitializer(
-            String subscriptionName, MessageId defaultOffset) {
-        this.subscriptionName = subscriptionName;
-        this.defaultOffset = defaultOffset;
-    }
+/**
+ * Split strategy for partition range.
+ */
+@PublicEvolving
+public interface SplitDivisionStrategy extends Serializable {
+
+    Collection<Range> getRanges(
+            String topic,
+            PulsarAdmin pulsarAdmin,
+            SplitEnumeratorContext<PulsarPartitionSplit> context)
+            throws PulsarAdminException;
 }

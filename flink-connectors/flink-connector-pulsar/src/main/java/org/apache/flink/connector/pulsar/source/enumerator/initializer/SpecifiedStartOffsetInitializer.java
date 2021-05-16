@@ -16,11 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.offset;
+package org.apache.flink.connector.pulsar.source.enumerator.initializer;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -40,12 +40,13 @@ import java.util.function.Supplier;
 @Internal
 public class SpecifiedStartOffsetInitializer implements StartOffsetInitializer {
     private static final long serialVersionUID = 1649702397250402877L;
-    private final Map<AbstractPartition, MessageId> initialOffsets;
+
+    private final Map<PartitionRange, MessageId> initialOffsets;
     private final MessageId defaultOffset;
     private final boolean inclusive;
 
     public SpecifiedStartOffsetInitializer(
-            Map<AbstractPartition, MessageId> initialOffsets,
+            Map<PartitionRange, MessageId> initialOffsets,
             MessageId defaultOffset,
             boolean inclusive) {
         this.initialOffsets = Collections.unmodifiableMap(initialOffsets);
@@ -55,14 +56,14 @@ public class SpecifiedStartOffsetInitializer implements StartOffsetInitializer {
 
     @Override
     public void initializeBeforeCreation(
-            AbstractPartition partition, CreationConfiguration configuration) {
+            PartitionRange partition, CreationConfiguration configuration) {
         configuration.getConsumerConfigurationData().setResetIncludeHead(inclusive);
         configuration.setInitialMessageId(initialOffsets.getOrDefault(partition, defaultOffset));
     }
 
     @Override
     public Optional<String> verifyOffset(
-            AbstractPartition partition,
+            PartitionRange partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         MessageId initialId = initialOffsets.getOrDefault(partition, defaultOffset);

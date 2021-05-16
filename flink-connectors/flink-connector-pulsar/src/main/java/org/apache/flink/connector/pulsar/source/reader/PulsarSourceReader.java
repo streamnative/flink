@@ -31,10 +31,12 @@ import org.apache.flink.util.function.RunnableWithException;
 import java.util.Map;
 import java.util.function.Supplier;
 
-/** The source reader for Pulsar partitions. */
+/**
+ * The source reader for Pulsar partitions.
+ */
 public class PulsarSourceReader<T>
         extends SingleThreadMultiplexSourceReaderBase<
-                ParsedMessage<T>, T, PulsarPartitionSplit, PulsarPartitionSplit> {
+        ParsedMessage<T>, T, PulsarPartitionSplit, PulsarPartitionSplit> {
 
     private final RunnableWithException closeCallback;
 
@@ -56,7 +58,9 @@ public class PulsarSourceReader<T>
     }
 
     @Override
-    protected void onSplitFinished(Map<String, PulsarPartitionSplit> finishedSplitIds) {}
+    protected void onSplitFinished(Map<String, PulsarPartitionSplit> finishedSplitIds) {
+        // Nothing to do here.
+    }
 
     @Override
     protected PulsarPartitionSplit initializedState(PulsarPartitionSplit split) {

@@ -20,9 +20,9 @@ package org.apache.flink.connector.pulsar.source.split;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceSplit;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.MessageId;
 
@@ -32,16 +32,22 @@ import java.io.Serializable;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** A {@link SourceSplit} for a Pulsar partition. */
+/**
+ * A {@link SourceSplit} for a Pulsar partition.
+ */
 @Internal
 public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneable {
-    private final AbstractPartition partition;
+    private static final long serialVersionUID = -7680060469197244137L;
+
+    private final PartitionRange partition;
     private final StartOffsetInitializer startOffsetInitializer;
     private final StopCondition stopCondition;
-    @Nullable private MessageId lastConsumedId;
+
+    @Nullable
+    private MessageId lastConsumedId;
 
     public PulsarPartitionSplit(
-            AbstractPartition partition,
+            PartitionRange partition,
             StartOffsetInitializer startOffsetInitializer,
             StopCondition stopCondition) {
         this.partition = checkNotNull(partition);
@@ -53,7 +59,7 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneabl
         return partition.getTopic();
     }
 
-    public AbstractPartition getPartition() {
+    public PartitionRange getPartition() {
         return partition;
     }
 
@@ -64,10 +70,6 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneabl
     public StopCondition getStopCondition() {
         return stopCondition;
     }
-
-    /* public Collection<Range> getKeyRanges() {
-        return partition.getKeyRanges();
-    }*/
 
     @Nullable
     public MessageId getLastConsumedId() {
@@ -85,7 +87,7 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneabl
 
     @Override
     public String toString() {
-        return String.format("[Partition: %s, lastConsumedId: %d]", partition, lastConsumedId);
+        return String.format("[Partition: %s, lastConsumedId: %s]", partition, lastConsumedId);
     }
 
     @Override

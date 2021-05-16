@@ -31,8 +31,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiPredicate;
 
-/** A util class for asynchronous call of method. */
-public class AsyncUtils {
+/**
+ * A util class for asynchronous call of method.
+ */
+public final class AsyncUtils {
+
+    private AsyncUtils() {
+        // No public constructor.
+    }
+
     public static <T, R, C extends CompletableFuture<R>, E extends Exception> void parallelAsync(
             List<T> elements,
             FunctionWithException<T, C, E> asyncInvoker,
@@ -50,7 +57,7 @@ public class AsyncUtils {
             BiConsumerWithException<T, R, E> consumer,
             Class<E> exceptionClass)
             throws E, InterruptedException, TimeoutException {
-        List<C> asyncFutures = new ArrayList<>();
+        List<C> asyncFutures = new ArrayList<>(elements.size());
         for (T element : elements) {
             asyncFutures.add(asyncInvoker.apply(element));
         }

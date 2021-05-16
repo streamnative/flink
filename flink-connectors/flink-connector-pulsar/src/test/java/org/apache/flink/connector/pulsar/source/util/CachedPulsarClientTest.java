@@ -97,13 +97,13 @@ public class CachedPulsarClientTest {
 
         assertNotEquals(client1, client2);
 
-        ConcurrentMap<ClientConfigurationData, PulsarClientImpl> map1 =
+        ConcurrentMap<String, PulsarClientImpl> map1 =
                 CachedPulsarClient.getAsMap();
         assertEquals(map1.size(), 2);
 
         CachedPulsarClient.close(conf2);
 
-        ConcurrentMap<ClientConfigurationData, PulsarClientImpl> map2 =
+        ConcurrentMap<String, PulsarClientImpl> map2 =
                 CachedPulsarClient.getAsMap();
         assertEquals(map2.size(), 1);
 

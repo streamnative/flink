@@ -24,10 +24,14 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** A util class to help with a clean component shutdown. */
+/**
+ * A util class to help with a clean component shutdown.
+ */
 public class ComponentClosingUtils {
 
-    private ComponentClosingUtils() {}
+    private ComponentClosingUtils() {
+        // No public constructor
+    }
 
     /**
      * Close a component with a timeout.
@@ -35,8 +39,9 @@ public class ComponentClosingUtils {
      * @param componentName the name of the component.
      * @param closingSequence the closing logic which is a callable that can throw exceptions.
      * @param closeTimeoutMs the timeout in milliseconds to waif for the component to close.
+     *
      * @return An optional throwable which is non-empty if an error occurred when closing the
-     *     component.
+     *         component.
      */
     public static Optional<Throwable> closeWithTimeout(
             String componentName,
@@ -61,8 +66,9 @@ public class ComponentClosingUtils {
      * @param componentName the name of the component.
      * @param closingSequence the closing logic.
      * @param closeTimeoutMs the timeout in milliseconds to waif for the component to close.
+     *
      * @return An optional throwable which is non-empty if an error occurred when closing the
-     *     component.
+     *         component.
      */
     public static Optional<Throwable> closeWithTimeout(
             String componentName, Runnable closingSequence, long closeTimeoutMs) {

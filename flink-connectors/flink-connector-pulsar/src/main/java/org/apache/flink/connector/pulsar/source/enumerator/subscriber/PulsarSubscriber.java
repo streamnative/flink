@@ -16,19 +16,20 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.connector.pulsar.source.subscription.TopicListSubscriber;
-import org.apache.flink.connector.pulsar.source.subscription.TopicPatternSubscriber;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -36,19 +37,14 @@ import java.util.Set;
  *
  * <ol>
  *   <li>Subscribe from a collection of topics.
- *   <li>Subscribe to a topic pattern using Java {@code Regex}.
+ *   <li>Subscribe to a topic pattern by using Java {@code Regex}.
  * </ol>
  *
  * <p>The PulsarSubscriber provides a unified interface for the Pulsar source to support all these
- * three types of subscribing mode.
+ * two types of subscribing mode.
  */
 @PublicEvolving
-public abstract class PulsarSubscriber implements Serializable {
-    protected SplitEnumeratorContext<PulsarPartitionSplit> context;
-
-    public void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context) {
-        this.context = context;
-    }
+public interface PulsarSubscriber extends Serializable {
 
     /**
      * Get the partitions changes compared to the current partition assignment.
@@ -58,40 +54,60 @@ public abstract class PulsarSubscriber implements Serializable {
      *
      * @param pulsarAdmin The pulsar admin used to retrieve partition information.
      * @param currentAssignment the partitions that are currently assigned to the source readers.
+     *
      * @return The partition changes compared with the currently assigned partitions.
      */
-    public abstract PartitionChange getPartitionChanges(
-            PulsarAdmin pulsarAdmin, Set<AbstractPartition> currentAssignment)
+    PartitionChange getPartitionChanges(
+            PulsarAdmin pulsarAdmin, Set<PartitionRange> currentAssignment)
             throws PulsarAdminException, InterruptedException, IOException;
 
-    /** A container class to hold the newly added partitions and removed partitions. */
-    public class PartitionChange {
-        private final Set<AbstractPartition> newPartitions;
-        private final Set<AbstractPartition> removedPartitions;
+    /**
+     * Get the available partition from the given pulsar admin interface.
+     */
+    List<PartitionRange> getCurrentPartitions(PulsarAdmin pulsarAdmin)
+            throws PulsarAdminException, InterruptedException, IOException;
+
+    void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context);
+
+    /**
+     * A container class to hold the newly added partitions and removed partitions.
+     */
+    class PartitionChange {
+
+        private final Set<PartitionRange> newPartitions;
+        private final Set<PartitionRange> removedPartitions;
 
         public PartitionChange(
-                Set<AbstractPartition> newPartitions, Set<AbstractPartition> removedPartitions) {
+                Set<PartitionRange> newPartitions, Set<PartitionRange> removedPartitions) {
             this.newPartitions = newPartitions;
             this.removedPartitions = removedPartitions;
         }
 
-        public Set<AbstractPartition> getNewPartitions() {
+        public Set<PartitionRange> getNewTopicRanges() {
             return newPartitions;
         }
 
-        public Set<AbstractPartition> getRemovedPartitions() {
+        public Set<PartitionRange> getRemovedPartitions() {
             return removedPartitions;
+        }
+
+        @Override
+        public String toString() {
+            return "PartitionChange{" +
+                    "newPartitions=" + newPartitions +
+                    ", removedPartitions=" + removedPartitions +
+                    '}';
         }
     }
 
     // ----------------- factory methods --------------
 
-    public static PulsarSubscriber getTopicListSubscriber(
+    static PulsarSubscriber getTopicListSubscriber(
             SplitDivisionStrategy splitDivisionStrategy, String... topics) {
         return new TopicListSubscriber(splitDivisionStrategy, topics);
     }
 
-    public static PulsarSubscriber getTopicPatternSubscriber(
+    static PulsarSubscriber getTopicPatternSubscriber(
             String namespace,
             SplitDivisionStrategy splitDivisionStrategy,
             Set<String> topicPatterns) {

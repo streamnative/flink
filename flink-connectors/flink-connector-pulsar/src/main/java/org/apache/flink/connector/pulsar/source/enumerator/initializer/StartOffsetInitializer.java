@@ -16,14 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.enumerator.initializer;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.connector.pulsar.source.offset.ExternalSubscriptionStartOffsetInitializer;
-import org.apache.flink.connector.pulsar.source.offset.RollbackStartOffsetInitializer;
-import org.apache.flink.connector.pulsar.source.offset.SpecifiedStartOffsetInitializer;
-import org.apache.flink.connector.pulsar.source.offset.TimestampStartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -41,8 +39,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
- * A interface for users to specify the starting / stopping offset of a {@link
- * PulsarPartitionSplit}.
+ * A interface for users to specify the starting offset of a {@link PulsarPartitionSplit}.
  */
 @PublicEvolving
 public interface StartOffsetInitializer extends Serializable {
@@ -54,7 +51,8 @@ public interface StartOffsetInitializer extends Serializable {
      * @param configuration the configuration used to create consumer
      */
     default void initializeBeforeCreation(
-            AbstractPartition partition, CreationConfiguration configuration) {}
+            PartitionRange partition, CreationConfiguration configuration) {
+    }
 
     /**
      * Initializes the offset for the given consumer and partition.
@@ -62,33 +60,26 @@ public interface StartOffsetInitializer extends Serializable {
      * @param partition the partition for which the consumer has been created
      * @param consumer the consumer
      */
-    default void initializeAfterCreation(AbstractPartition partition, Consumer<?> consumer)
-            throws PulsarClientException {}
+    default void initializeAfterCreation(PartitionRange partition, Consumer<?> consumer)
+            throws PulsarClientException {
+    }
 
     /**
      * Verifies if the offset was initialized correctly.
      *
      * @return an error message if no appropriate data point could be found or empty if
-     *     initialization worked correctly.
+     *         initialization worked correctly.
+     *
      * @see PulsarSourceOptions#VERIFY_INITIAL_OFFSETS
      */
     default Optional<String> verifyOffset(
-            AbstractPartition partition,
+            PartitionRange partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return Optional.empty();
     }
 
     // --------------- factory methods ---------------
-
-    static StartOffsetInitializer committedOffsets(String subscriptionName) {
-        return committedOffsets(subscriptionName, MessageId.earliest);
-    }
-
-    static StartOffsetInitializer committedOffsets(
-            String subscriptionName, MessageId defaultOffset) {
-        return new ExternalSubscriptionStartOffsetInitializer(subscriptionName, defaultOffset);
-    }
 
     static StartOffsetInitializer timestamps(long timestamp) {
         return new TimestampStartOffsetInitializer(timestamp);
@@ -120,19 +111,23 @@ public interface StartOffsetInitializer extends Serializable {
         return offsets(Collections.emptyMap(), offset, inclusive);
     }
 
-    static StartOffsetInitializer offsets(Map<AbstractPartition, MessageId> offsets) {
+    static StartOffsetInitializer offsets(Map<PartitionRange, MessageId> offsets) {
         return offsets(offsets, MessageId.earliest, true);
     }
 
     static StartOffsetInitializer offsets(
-            Map<AbstractPartition, MessageId> offsets, MessageId defaultOffset, boolean inclusive) {
+            Map<PartitionRange, MessageId> offsets, MessageId defaultOffset, boolean inclusive) {
         return new SpecifiedStartOffsetInitializer(offsets, defaultOffset, inclusive);
     }
 
     /** config class to create consumer. */
     class CreationConfiguration {
+
         private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
-        @Nullable private MessageId initialMessageId;
+
+        @Nullable
+        private MessageId initialMessageId;
+
         private long rollbackInS = 0;
 
         public CreationConfiguration(ConsumerConfigurationData<byte[]> consumerConfigurationData) {

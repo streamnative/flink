@@ -18,18 +18,19 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
-import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
-import org.apache.flink.connector.pulsar.source.SplitSchedulingStrategy;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.function.ThrowingRunnable;
 
@@ -54,7 +55,10 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.connector.pulsar.source.util.ComponentClosingUtils.closeWithTimeout;
 
-/** The enumerator class for pulsar source. */
+/**
+ * The enumerator class for pulsar source.
+ */
+@Internal
 public class PulsarSourceEnumerator
         implements SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> {
 
@@ -72,7 +76,7 @@ public class PulsarSourceEnumerator
      * This set is only accessed by the partition discovery callable in the callAsync() method, i.e
      * worker thread.
      */
-    private final Set<AbstractPartition> discoveredPartitions;
+    private final Set<PartitionRange> discoveredPartitions;
     /** The current assignment by reader id. Only accessed by the coordinator thread. */
     private final Map<Integer, List<PulsarPartitionSplit>> readerIdToSplitAssignments;
     /**
@@ -84,7 +88,7 @@ public class PulsarSourceEnumerator
     // Lazily instantiated or mutable fields.
     private boolean noMoreNewPartitionSplits = false;
 
-    private SplitSchedulingStrategy splitSchedulingStrategy;
+    private final SplitSchedulingStrategy splitSchedulingStrategy;
 
     public PulsarSourceEnumerator(
             PulsarSubscriber subscriber,
@@ -139,7 +143,6 @@ public class PulsarSourceEnumerator
         assignPendingPartitionSplits();
     }
 
-    // id -> 5
     @Override
     public void addReader(int subtaskId) {
         LOG.debug("Adding reader {}.", subtaskId);
@@ -147,7 +150,7 @@ public class PulsarSourceEnumerator
     }
 
     @Override
-    public PulsarSourceEnumeratorState snapshotState() throws Exception {
+    public PulsarSourceEnumeratorState snapshotState(long checkpointId) throws Exception {
         return new PulsarSourceEnumeratorState(readerIdToSplitAssignments);
     }
 
@@ -178,10 +181,10 @@ public class PulsarSourceEnumerator
                 subscriber.getPartitionChanges(
                         pulsarAdmin, Collections.unmodifiableSet(discoveredPartitions));
 
-        discoveredPartitions.addAll(partitionChange.getNewPartitions());
+        discoveredPartitions.addAll(partitionChange.getNewTopicRanges());
 
         List<PulsarPartitionSplit> partitionSplits =
-                partitionChange.getNewPartitions().stream()
+                partitionChange.getNewTopicRanges().stream()
                         .map(
                                 partition ->
                                         new PulsarPartitionSplit(
@@ -254,14 +257,18 @@ public class PulsarSourceEnumerator
                 });
     }
 
-    /** class that represents partitionSplit's change. */
+    /**
+     * class that represents partitionSplit's change.
+     */
     public static class PartitionSplitChange {
+
         private final List<PulsarPartitionSplit> newPartitionSplits;
-        private final Set<AbstractPartition> removedPartitions;
+
+        private final Set<PartitionRange> removedPartitions;
 
         private PartitionSplitChange(
                 List<PulsarPartitionSplit> newPartitionSplits,
-                Set<AbstractPartition> removedPartitions) {
+                Set<PartitionRange> removedPartitions) {
             this.newPartitionSplits = newPartitionSplits;
             this.removedPartitions = removedPartitions;
         }

@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.offset;
+package org.apache.flink.connector.pulsar.source.enumerator.initializer;
 
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -31,12 +30,13 @@ import java.util.function.Supplier;
  * An implementation of {@link StartOffsetInitializer} to rollback the offsets by a certain
  * duration.
  *
- * <p>This implementation does not verify if data exists after the rollback as this initiliazer
+ * <p>This implementation does not verify if data exists after the rollback performing on this initializer.
  *
  * <p>Package private and should be instantiated via {@link StartOffsetInitializer}.
  */
 public class RollbackStartOffsetInitializer implements StartOffsetInitializer {
     private static final long serialVersionUID = 2932230571773627233L;
+
     private final long rollbackTimeInS;
 
     public RollbackStartOffsetInitializer(long rollbackTimeInS) {
@@ -45,13 +45,13 @@ public class RollbackStartOffsetInitializer implements StartOffsetInitializer {
 
     @Override
     public void initializeBeforeCreation(
-            AbstractPartition partition, CreationConfiguration creationConfiguration) {
+            PartitionRange partition, CreationConfiguration creationConfiguration) {
         creationConfiguration.setRollbackInS(rollbackTimeInS);
     }
 
     @Override
     public Optional<String> verifyOffset(
-            AbstractPartition partition,
+            PartitionRange partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent()

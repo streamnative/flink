@@ -16,16 +16,16 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.subscription;
+package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.NoSplitDivisionStrategy;
-import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
-import org.apache.flink.connector.pulsar.source.UniformSplitDivisionStrategy;
-import org.apache.flink.connector.pulsar.source.util.TopicRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.NoSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.UniformSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
+
+import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
 
 import org.apache.pulsar.common.naming.TopicName;
 import org.junit.AfterClass;
@@ -41,7 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/** Unit tests for {@link org.apache.flink.connector.pulsar.source.PulsarSubscriber}. */
+/** Unit tests for {@link PulsarSubscriber}. */
 public class PulsarSubscriberTest extends PulsarTestBase {
     private static final String TOPIC1 = TopicName.get("topic1").toString();
     private static final String TOPIC2 = TopicName.get("pattern-topic").toString();
@@ -49,15 +49,15 @@ public class PulsarSubscriberTest extends PulsarTestBase {
             TopicName.get("topic1-partition-0").toString();
     private static final String TOPIC2_WITH_PARTITION =
             TopicName.get("pattern-topic-partition-0").toString();
-    private static final BrokerPartition assignedPartition1 =
-            new BrokerPartition(new TopicRange(TOPIC1_WITH_PARTITION, BrokerPartition.FULL_RANGE));
-    private static final BrokerPartition assignedPartition2 =
-            new BrokerPartition(new TopicRange(TOPIC2_WITH_PARTITION, BrokerPartition.FULL_RANGE));
-    private static final BrokerPartition removedPartition =
-            new BrokerPartition(new TopicRange("removed", BrokerPartition.FULL_RANGE));
+    private static final PartitionRange assignedPartition1 =
+            new PartitionRange(TOPIC1_WITH_PARTITION, PulsarRange.FULL_RANGE);
+    private static final PartitionRange assignedPartition2 =
+            new PartitionRange(TOPIC2_WITH_PARTITION, PulsarRange.FULL_RANGE);
+    private static final PartitionRange removedPartition =
+            new PartitionRange("removed", PulsarRange.FULL_RANGE);
     private static final int NUM_PARTITIONS_PER_TOPIC = 5;
-    private static final Set<AbstractPartition> currentAssignment =
-            new HashSet<>(Arrays.asList(assignedPartition1, assignedPartition2, removedPartition));
+    private static final Set<PartitionRange> currentAssignment =
+            Sets.newHashSet(assignedPartition1, assignedPartition2, removedPartition);
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -85,7 +85,7 @@ public class PulsarSubscriberTest extends PulsarTestBase {
         subscriber.setContext(context);
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
-        assertEquals(change.getNewPartitions().size(), 50);
+        assertEquals(change.getNewTopicRanges().size(), 50);
     }
 
     @Test
@@ -95,11 +95,11 @@ public class PulsarSubscriberTest extends PulsarTestBase {
                         NoSplitDivisionStrategy.INSTANCE, TOPIC1, TOPIC2);
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
-        Set<BrokerPartition> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
+        Set<PartitionRange> expectedNewPartitions = new HashSet<>(getPartitionsForTopic(TOPIC1));
         expectedNewPartitions.addAll(getPartitionsForTopic(TOPIC2));
         expectedNewPartitions.remove(assignedPartition1);
         expectedNewPartitions.remove(assignedPartition2);
-        assertEquals(expectedNewPartitions, change.getNewPartitions());
+        assertEquals(expectedNewPartitions, change.getNewTopicRanges());
         assertEquals(Collections.singleton(removedPartition), change.getRemovedPartitions());
     }
 
@@ -113,20 +113,19 @@ public class PulsarSubscriberTest extends PulsarTestBase {
         PulsarSubscriber.PartitionChange change =
                 subscriber.getPartitionChanges(pulsarAdmin, currentAssignment);
 
-        Set<BrokerPartition> expectedNewPartitions = new HashSet<>();
+        Set<PartitionRange> expectedNewPartitions = new HashSet<>();
         for (int i = 0; i < NUM_PARTITIONS_PER_TOPIC; i++) {
             if (!(TOPIC2 + TopicName.PARTITIONED_TOPIC_SUFFIX + i)
                     .equals(assignedPartition2.getTopic())) {
                 expectedNewPartitions.add(
-                        new BrokerPartition(
-                                new TopicRange(
-                                        TOPIC2 + "-partition-" + i, BrokerPartition.FULL_RANGE)));
+                        new PartitionRange(
+                                TOPIC2 + "-partition-" + i, PulsarRange.FULL_RANGE));
             }
         }
-        Set<BrokerPartition> expectedRemovedPartitions =
+        Set<PartitionRange> expectedRemovedPartitions =
                 new HashSet<>(Arrays.asList(assignedPartition1, removedPartition));
 
-        assertEquals(expectedNewPartitions, change.getNewPartitions());
+        assertEquals(expectedNewPartitions, change.getNewTopicRanges());
         assertEquals(expectedRemovedPartitions, change.getRemovedPartitions());
     }
 }

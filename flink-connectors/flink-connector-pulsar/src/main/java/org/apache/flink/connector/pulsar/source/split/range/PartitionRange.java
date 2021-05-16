@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.util;
+package org.apache.flink.connector.pulsar.source.split.range;
 
 import org.apache.flink.shaded.guava18.com.google.common.base.MoreObjects;
 import org.apache.flink.shaded.guava18.com.google.common.collect.ComparisonChain;
@@ -25,65 +25,75 @@ import org.apache.pulsar.client.api.Range;
 
 import javax.validation.constraints.NotNull;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.Serializable;
 import java.util.Objects;
 
-import static org.apache.flink.connector.pulsar.source.util.SerializableRange.fullRangeEnd;
-import static org.apache.flink.connector.pulsar.source.util.SerializableRange.fullRangeStart;
+import static org.apache.flink.connector.pulsar.source.split.range.PulsarRange.FULL_RANGE_END;
+import static org.apache.flink.connector.pulsar.source.split.range.PulsarRange.FULL_RANGE_START;
 
-/** topic key_share range. */
-public class TopicRange implements Externalizable, Comparable<TopicRange> {
+/**
+ * The range for key_share mode in topic.
+ */
+public class PartitionRange implements Serializable, Comparable<PartitionRange> {
+    private static final long serialVersionUID = 4327829161560400869L;
 
     private String topic;
 
-    private SerializableRange range;
+    private PulsarRange range;
 
-    // For deserialization only
-    public TopicRange() {
+    // Add this constructor only for deserialization.
+    public PartitionRange() {
         this(null, null);
     }
 
-    public TopicRange(String topic) {
+    /**
+     * Create a full range with the given topic.
+     */
+    public PartitionRange(String topic) {
         this.topic = topic;
-        this.range = SerializableRange.of(fullRangeStart, fullRangeEnd);
+        this.range = PulsarRange.of(FULL_RANGE_START, FULL_RANGE_END);
     }
 
-    public TopicRange(String topic, Range range) {
+    public PartitionRange(String topic, Range range) {
         this.topic = topic;
-        this.range = SerializableRange.of(range);
+        this.range = PulsarRange.of(range);
     }
 
-    public TopicRange(String topic, int start, int end) {
+    public PartitionRange(String topic, int start, int end) {
         this.topic = topic;
-        this.range = SerializableRange.of(start, end);
+        this.range = PulsarRange.of(start, end);
     }
 
     public String getTopic() {
         return topic;
     }
 
-    public SerializableRange getRange() {
+    public PulsarRange getRange() {
         return range;
     }
 
-    public Range getPulsarRange() {
-        return range.getPulsarRange();
-    }
-
     public boolean isFullRange() {
-        return range.getPulsarRange().getStart() == fullRangeStart
-                && range.getPulsarRange().getEnd() == fullRangeEnd;
+        return range.isFullRange();
     }
 
     public void setTopic(String topic) {
         this.topic = topic;
     }
 
-    public void setRange(SerializableRange range) {
-        this.range = range;
+    public void setRange(Range range) {
+        this.range = PulsarRange.of(range);
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws IOException {
+        out.writeUTF(topic);
+        out.writeObject(range);
+    }
+
+    private void readObject(java.io.ObjectInputStream in)
+            throws IOException, ClassNotFoundException {
+        this.topic = in.readUTF();
+        this.range = (PulsarRange) in.readObject();
     }
 
     @Override
@@ -91,10 +101,10 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof TopicRange)) {
+        if (!(o instanceof PartitionRange)) {
             return false;
         }
-        TopicRange that = (TopicRange) o;
+        PartitionRange that = (PartitionRange) o;
         return topic.equals(that.topic) && range.equals(that.range);
     }
 
@@ -107,24 +117,12 @@ public class TopicRange implements Externalizable, Comparable<TopicRange> {
     public String toString() {
         return MoreObjects.toStringHelper(this)
                 .add("topic", topic)
-                .add("key-range", range)
+                .add("range", range)
                 .toString();
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeUTF(topic);
-        out.writeObject(range);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        this.topic = in.readUTF();
-        this.range = (SerializableRange) in.readObject();
-    }
-
-    @Override
-    public int compareTo(@NotNull TopicRange o) {
+    public int compareTo(@NotNull PartitionRange o) {
         return ComparisonChain.start().compare(topic, o.topic).compare(range, o.range).result();
     }
 }

@@ -24,7 +24,6 @@ import org.apache.flink.runtime.state.CheckpointListener;
 import org.apache.flink.streaming.api.checkpoint.ListCheckpointed;
 import org.apache.flink.test.util.SuccessException;
 
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,6 @@ import java.util.List;
  *
  * @param <T>
  */
-@Slf4j
 public class FailingIdentityMapper<T> extends RichMapFunction<T, T>
         implements ListCheckpointed<Integer>, CheckpointListener, Runnable {
 

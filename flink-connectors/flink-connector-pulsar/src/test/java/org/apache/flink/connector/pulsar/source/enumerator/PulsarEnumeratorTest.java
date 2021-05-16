@@ -21,19 +21,18 @@ package org.apache.flink.connector.pulsar.source.enumerator;
 import org.apache.flink.api.connector.source.ReaderInfo;
 import org.apache.flink.api.connector.source.mocks.MockSplitEnumeratorContext;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.HashSplitSchedulingStrategy;
-import org.apache.flink.connector.pulsar.source.KeySharedSplitSchedulingStrategy;
-import org.apache.flink.connector.pulsar.source.NoSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.scheduling.HashSplitSchedulingStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.scheduling.KeySharedSplitSchedulingStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.NoSplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
-import org.apache.flink.connector.pulsar.source.PulsarSubscriber;
-import org.apache.flink.connector.pulsar.source.SplitDivisionStrategy;
-import org.apache.flink.connector.pulsar.source.SplitSchedulingStrategy;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
-import org.apache.flink.connector.pulsar.source.UniformSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.UniformSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
-import org.apache.flink.connector.pulsar.source.subscription.AbstractPulsarSubscriber;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
 import org.apache.pulsar.common.naming.TopicName;
@@ -89,7 +88,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
+                     createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
             enumerator.start();
@@ -108,7 +107,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
+                     createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
             enumerator.start();
@@ -127,7 +126,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
+                     createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
             enumerator.start();
@@ -153,7 +152,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
+                     createEnumerator(context, DISABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
             enumerator.start();
@@ -177,11 +176,11 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(UniformSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(
-                        context,
-                        DISABLE_PERIODIC_PARTITION_DISCOVERY,
-                        KeySharedSplitSchedulingStrategy.INSTANCE,
-                        subscribe)) {
+                     createEnumerator(
+                             context,
+                             DISABLE_PERIODIC_PARTITION_DISCOVERY,
+                             KeySharedSplitSchedulingStrategy.INSTANCE,
+                             subscribe)) {
             // Start the enumerator and it should schedule a one time task to discover and assign
             // partitions.
             enumerator.start();
@@ -263,7 +262,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
+                     createEnumerator(context, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe)) {
             startEnumeratorAndRegisterReaders(context, enumerator, subscribe);
 
             // Simulate a reader failure.
@@ -291,7 +290,7 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         Map<Integer, List<PulsarPartitionSplit>> preexistingAssignments;
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(context1, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe1)) {
+                     createEnumerator(context1, ENABLE_PERIODIC_PARTITION_DISCOVERY, subscribe1)) {
             startEnumeratorAndRegisterReaders(context1, enumerator, subscribe1);
             preexistingAssignments =
                     asEnumState(context1.getSplitsAssignmentSequence().get(0).assignment());
@@ -302,12 +301,12 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
         PulsarSubscriber subscribe2 =
                 createSubscribe(NoSplitDivisionStrategy.INSTANCE, PRE_EXISTING_TOPICS);
         try (PulsarSourceEnumerator enumerator =
-                createEnumerator(
-                        context2,
-                        ENABLE_PERIODIC_PARTITION_DISCOVERY,
-                        preexistingAssignments,
-                        HashSplitSchedulingStrategy.INSTANCE,
-                        subscribe2)) {
+                     createEnumerator(
+                             context2,
+                             ENABLE_PERIODIC_PARTITION_DISCOVERY,
+                             preexistingAssignments,
+                             HashSplitSchedulingStrategy.INSTANCE,
+                             subscribe2)) {
             enumerator.start();
             context2.runPeriodicCallable(PARTITION_DISCOVERY_CALLABLE_INDEX);
 
@@ -455,11 +454,11 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
     }
 
     private void verifyAssignments(
-            Map<Integer, Set<AbstractPartition>> expectedAssignments,
+            Map<Integer, Set<PartitionRange>> expectedAssignments,
             Map<Integer, List<PulsarPartitionSplit>> actualAssignments) {
         actualAssignments.forEach(
                 (reader, splits) -> {
-                    Set<AbstractPartition> expectedAssignmentsForReader =
+                    Set<PartitionRange> expectedAssignmentsForReader =
                             expectedAssignments.get(reader);
                     assertNotNull(expectedAssignmentsForReader);
                     assertEquals(expectedAssignmentsForReader.size(), splits.size());
@@ -469,16 +468,15 @@ public class PulsarEnumeratorTest extends PulsarTestBase {
                 });
     }
 
-    private Map<Integer, Set<AbstractPartition>> getExpectedAssignments(
+    private Map<Integer, Set<PartitionRange>> getExpectedAssignments(
             Set<Integer> readers,
             Set<String> topics,
             SplitSchedulingStrategy splitSchedulingStrategy,
             PulsarSubscriber subscriber)
             throws Exception {
-        Map<Integer, Set<AbstractPartition>> expectedAssignments = new HashMap<>();
-        Collection<AbstractPartition> currentPartitions =
-                ((AbstractPulsarSubscriber) subscriber).getCurrentPartitions(pulsarAdmin);
-        for (AbstractPartition tp : currentPartitions) {
+        Map<Integer, Set<PartitionRange>> expectedAssignments = new HashMap<>();
+        Collection<PartitionRange> currentPartitions = subscriber.getCurrentPartitions(pulsarAdmin);
+        for (PartitionRange tp : currentPartitions) {
             if (topics.stream()
                     .anyMatch(
                             prefix -> tp.getTopic().startsWith(TopicName.get(prefix).toString()))) {

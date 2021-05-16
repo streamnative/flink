@@ -18,6 +18,7 @@
 
 package org.apache.flink.connector.pulsar.source.util;
 
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
 import org.apache.flink.util.TestLogger;
 
 import org.apache.pulsar.client.api.Range;
@@ -53,7 +54,8 @@ public class SourceSinkTest extends TestLogger {
         // log.info(ranges.toString());
         Collections.sort(ranges, Comparator.comparingInt(Range::getStart));
         Assert.assertEquals(ranges.get(0).getStart(), 0);
-        Assert.assertEquals(ranges.get(ranges.size() - 1).getEnd(), SerializableRange.fullRangeEnd);
+        Assert.assertEquals(
+                ranges.get(ranges.size() - 1).getEnd(), PulsarRange.FULL_RANGE_END);
         for (int i = 1; i < ranges.size(); i++) {
             final Range range = ranges.get(i - 1);
             final Range currentRange = ranges.get(i);

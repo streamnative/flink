@@ -22,6 +22,13 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.Boundedness;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.Configuration;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.NoSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.scheduling.HashSplitSchedulingStrategy;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -30,42 +37,48 @@ import org.apache.pulsar.client.api.SubscriptionType;
 import org.apache.pulsar.client.impl.ClientBuilderImpl;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
-import org.apache.pulsar.shade.com.google.common.collect.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
+import static org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber.getTopicListSubscriber;
+import static org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber.getTopicPatternSubscriber;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /**
- * The @builder class for {@link PulsarSource} to make it easier for the users to construct a {@link
- * PulsarSource}.
+ * The builder class for {@link PulsarSource}, make it easier for the users to construct a {@link
+ * PulsarSource}. We have exposed the main source configurations through builder methods. You can
+ * create the pulsar source with a more readable API.
+ *
+ * <p>TODO - Add examples for how to use the pulsar source.
+ * <p>TODO - Add comments for pulsar builder method.
  */
 @PublicEvolving
 public class PulsarSourceBuilder<OUT> {
+
     private static final Logger LOG = LoggerFactory.getLogger(PulsarSourceBuilder.class);
+
     // The subscriber specifies the partitions to subscribe to.
     private PulsarSubscriber subscriber;
     // Users can specify the starting / stopping offset initializer.
     private StartOffsetInitializer startOffsetInitializer = StartOffsetInitializer.earliest();
     private StopCondition stopCondition = StopCondition.never();
-    // Boundedness
+    // Boundedness flag for passing to flink, It's added for matching the implementation for Source
+    // interface. We would support the batch mode after finishing pulsar side's work.
     private Boundedness boundedness = Boundedness.CONTINUOUS_UNBOUNDED;
     private MessageDeserializer<OUT> messageDeserializer;
     private SplitSchedulingStrategy splitSchedulingStrategy;
-    // The configurations.
-    private Configuration configuration = new Configuration();
 
-    private ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
-    private ConsumerConfigurationData<byte[]> consumerConfigurationData =
+    // The configuration for pulsar source.
+    private final Configuration configuration = new Configuration();
+    // The pulsar client configuration.
+    private final ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
+    // The detailed consume configuration for customize the consuming behavior from pulsar client.
+    private final ConsumerConfigurationData<byte[]> consumerConfigurationData =
             new ConsumerConfigurationData<>();
 
     PulsarSourceBuilder() {
@@ -76,23 +89,14 @@ public class PulsarSourceBuilder<OUT> {
 
     public PulsarSourceBuilder<OUT> setTopics(
             SplitDivisionStrategy splitDivisionStrategy, String... topics) {
-        TreeSet<String> topicNames = Sets.newTreeSet();
-        List<String> collect = Arrays.stream(topics).collect(Collectors.toList());
-        for (String topic : collect) {
-            topicNames.add(topic);
-        }
-        consumerConfigurationData.setTopicNames(topicNames);
-        return setSubscriber(
-                PulsarSubscriber.getTopicListSubscriber(splitDivisionStrategy, topics));
+        return setSubscriber(getTopicListSubscriber(splitDivisionStrategy, topics));
     }
 
     public PulsarSourceBuilder<OUT> setTopicPattern(
             String namespace,
             SplitDivisionStrategy splitDivisionStrategy,
             Set<String> topicPatterns) {
-        return setSubscriber(
-                PulsarSubscriber.getTopicPatternSubscriber(
-                        namespace, splitDivisionStrategy, topicPatterns));
+        return setSubscriber(getTopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns));
     }
 
     public PulsarSourceBuilder<OUT> setSubscriber(PulsarSubscriber subscriber) {
@@ -126,7 +130,9 @@ public class PulsarSourceBuilder<OUT> {
         return this;
     }
 
-    public <T> PulsarSourceBuilder<T> setDeserializer(MessageDeserializer<T> messageDeserializer) {
+    @SuppressWarnings("unchecked")
+    public <T extends OUT> PulsarSourceBuilder<T> setDeserializer(
+            MessageDeserializer<T> messageDeserializer) {
         this.messageDeserializer = (MessageDeserializer<OUT>) messageDeserializer;
         return (PulsarSourceBuilder<T>) this;
     }
@@ -143,11 +149,16 @@ public class PulsarSourceBuilder<OUT> {
     }
 
     public PulsarSourceBuilder<OUT> configurePulsarConsumer(
-            Consumer<ConsumerConfigurationData> configurationConsumer) {
+            Consumer<ConsumerConfigurationData<byte[]>> configurationConsumer) {
         configurationConsumer.accept(consumerConfigurationData);
         return this;
     }
 
+    /**
+     * Build the {@link PulsarSource}.
+     *
+     * @return a PulsarSource with the settings made for this builder.
+     */
     public PulsarSource<OUT> build() {
         sanityCheck();
         if (splitSchedulingStrategy == null) {
@@ -171,9 +182,10 @@ public class PulsarSourceBuilder<OUT> {
         if (userValue != null) {
             if (override) {
                 LOG.warn(
-                        String.format(
-                                "Configuration %s is provided but will be overridden from %s to %s",
-                                option, userValue, value));
+                        "Configuration {} is provided but will be overridden from {} to {}",
+                        option,
+                        userValue,
+                        value);
                 configuration.set(option, value);
                 overridden = true;
             }

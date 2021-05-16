@@ -16,14 +16,14 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.split.strategy.division;
 
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.util.SourceSinkUtils;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.admin.PulsarAdminException;
 import org.apache.pulsar.client.api.Range;
 
 import java.util.ArrayList;
@@ -32,16 +32,20 @@ import java.util.List;
 
 /** Split strategy for keyShared mode. */
 public class UniformSplitDivisionStrategy implements SplitDivisionStrategy {
+    private static final long serialVersionUID = 7660900010095553750L;
+
     public static final UniformSplitDivisionStrategy INSTANCE = new UniformSplitDivisionStrategy();
 
-    private UniformSplitDivisionStrategy() {}
+    private UniformSplitDivisionStrategy() {
+        // Singleton instance.
+    }
 
     @Override
     public Collection<Range> getRanges(
             String topic,
             PulsarAdmin pulsarAdmin,
-            SplitEnumeratorContext<PulsarPartitionSplit> context)
-            throws PulsarAdminException {
+            SplitEnumeratorContext<PulsarPartitionSplit> context) {
+
         int numReaders = context.currentParallelism();
         List<Range> rangeList = new ArrayList<>();
         for (int subtaskIdx = 0; subtaskIdx < numReaders; subtaskIdx++) {

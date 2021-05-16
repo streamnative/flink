@@ -18,6 +18,9 @@
 
 package org.apache.flink.connector.pulsar.source;
 
+import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
@@ -32,19 +35,16 @@ import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.
 import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.STOP_AFTER;
 import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.STOP_BEFORE;
 
-/** An interface to control when to stop. */
+/**
+ * An interface to control when to stop.
+ */
+@PublicEvolving
 public interface StopCondition extends Serializable {
-    StopResult shouldStop(AbstractPartition partition, Message<?> message);
 
-    /** Enum for stop condition. */
-    enum StopResult {
-        STOP_BEFORE,
-        STOP_AFTER,
-        DONT_STOP;
-    }
+    StopResult shouldStop(PartitionRange partition, Message<?> message);
 
     Comparator<MessageId> NON_BATCH_COMPARATOR =
-            new Comparator<MessageId>() {
+            new Comparator<>() {
                 final Comparator<MessageIdImpl> implComparator =
                         Comparator.comparingLong(MessageIdImpl::getLedgerId)
                                 .thenComparingLong(MessageIdImpl::getEntryId)
@@ -56,8 +56,9 @@ public interface StopCondition extends Serializable {
                 }
             };
 
-    default void init(AbstractPartition partition, Consumer<byte[]> consumer)
-            throws PulsarClientException {}
+    default void init(PartitionRange partition, Consumer<byte[]> consumer)
+            throws PulsarClientException {
+    }
 
     static StopCondition stopAtMessageId(MessageId id) {
         return (partition, message) -> hitMessageId(message, id) ? STOP_BEFORE : DONT_STOP;
@@ -71,12 +72,12 @@ public interface StopCondition extends Serializable {
         return (partition, message) -> hitMessageId(message, id) ? STOP_AFTER : DONT_STOP;
     }
 
-    static StopCondition stopAtMessageIds(Map<AbstractPartition, MessageId> ids) {
+    static StopCondition stopAtMessageIds(Map<PartitionRange, MessageId> ids) {
         return (partition, message) ->
                 hitMessageId(message, ids.get(partition)) ? STOP_BEFORE : DONT_STOP;
     }
 
-    static StopCondition stopAfterMessageIds(Map<AbstractPartition, MessageId> ids) {
+    static StopCondition stopAfterMessageIds(Map<PartitionRange, MessageId> ids) {
         return (partition, message) ->
                 hitMessageId(message, ids.get(partition)) ? STOP_AFTER : DONT_STOP;
     }
@@ -92,8 +93,10 @@ public interface StopCondition extends Serializable {
 
     static StopCondition stopAtLast() {
         return new LastStopCondition() {
+            private static final long serialVersionUID = -6499436037176292943L;
+
             @Override
-            public StopResult shouldStop(AbstractPartition partition, Message<?> message) {
+            public StopResult shouldStop(PartitionRange partition, Message<?> message) {
                 return lastId == null || hitMessageId(message, lastId) ? STOP_BEFORE : DONT_STOP;
             }
         };
@@ -101,8 +104,10 @@ public interface StopCondition extends Serializable {
 
     static StopCondition stopAfterLast() {
         return new LastStopCondition() {
+            private static final long serialVersionUID = 5973551258947173755L;
+
             @Override
-            public StopResult shouldStop(AbstractPartition partition, Message<?> message) {
+            public StopResult shouldStop(PartitionRange partition, Message<?> message) {
                 if (lastId == null) {
                     return STOP_BEFORE;
                 }
@@ -114,16 +119,27 @@ public interface StopCondition extends Serializable {
     static StopCondition never() {
         return (partition, message) -> DONT_STOP;
     }
-}
 
-abstract class LastStopCondition implements StopCondition {
-    MessageId lastId;
+    /**
+     * Enum for stop condition.
+     */
+    enum StopResult {
+        STOP_BEFORE,
+        STOP_AFTER,
+        DONT_STOP
+    }
 
-    @Override
-    public void init(AbstractPartition partition, Consumer<byte[]> consumer)
-            throws PulsarClientException {
-        if (lastId == null) {
-            lastId = consumer.getLastMessageId();
+    abstract class LastStopCondition implements StopCondition {
+        private static final long serialVersionUID = 8822508647807192794L;
+
+        MessageId lastId;
+
+        @Override
+        public void init(PartitionRange partition, Consumer<byte[]> consumer)
+                throws PulsarClientException {
+            if (lastId == null) {
+                lastId = consumer.getLastMessageId();
+            }
         }
     }
 }

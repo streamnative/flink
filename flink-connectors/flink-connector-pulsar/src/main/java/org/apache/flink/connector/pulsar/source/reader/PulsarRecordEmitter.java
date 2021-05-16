@@ -22,9 +22,12 @@ import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
-/** The {@link RecordEmitter} implementation for {@link PulsarSourceReader}. */
+/**
+ * The {@link RecordEmitter} implementation for {@link PulsarSourceReader}.
+ */
 public class PulsarRecordEmitter<T>
         implements RecordEmitter<ParsedMessage<T>, T, PulsarPartitionSplit> {
+
     @Override
     public void emitRecord(
             ParsedMessage<T> element, SourceOutput<T> output, PulsarPartitionSplit splitState) {

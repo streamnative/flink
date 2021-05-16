@@ -18,21 +18,21 @@
 
 package org.apache.flink.connector.pulsar.source.reader;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.time.Deadline;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.MessageDeserializer;
-import org.apache.flink.connector.pulsar.source.PartitionReader;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions.OffsetVerification;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer.CreationConfiguration;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer.CreationConfiguration;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.ExceptionUtils;
@@ -51,6 +51,7 @@ import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ConsumerImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
+import org.apache.pulsar.client.util.ExecutorProvider;
 import org.apache.pulsar.common.naming.TopicName;
 import org.apache.pulsar.shade.com.google.common.io.Closer;
 import org.slf4j.Logger;
@@ -72,7 +73,6 @@ import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -85,11 +85,12 @@ import static org.apache.flink.connector.pulsar.source.util.ComponentClosingUtil
  *
  * @param <T> the type of the record to be emitted from the Source.
  */
+@Internal
 public class PulsarPartitionSplitReader<T>
         implements SplitReader<ParsedMessage<T>, PulsarPartitionSplit>, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
 
-    private final PriorityQueue<PartitionReader> readerQueue = new PriorityQueue<>();
+    private final PriorityQueue<PulsarPartitionReader> readerQueue = new PriorityQueue<>();
     private final SimpleCollector<T> collector = new SimpleCollector<>();
     private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
     private final PulsarClient client;
@@ -100,7 +101,7 @@ public class PulsarPartitionSplitReader<T>
     private final long closeTimeout;
     private final OffsetVerification offsetVerification;
     private volatile boolean wakeup;
-    private final ExecutorService listenerExecutor;
+    private final ExecutorProvider listenerExecutor;
 
     public PulsarPartitionSplitReader(
             Configuration configuration,
@@ -108,7 +109,7 @@ public class PulsarPartitionSplitReader<T>
             PulsarClient client,
             PulsarAdmin pulsarAdmin,
             MessageDeserializer<T> messageDeserializer,
-            ExecutorService listenerExecutor) {
+            ExecutorProvider listenerExecutor) {
         this.consumerConfigurationData = consumerConfigurationData;
         this.client = client;
         this.pulsarAdmin = pulsarAdmin;
@@ -144,12 +145,12 @@ public class PulsarPartitionSplitReader<T>
 
         Deadline deadline = Deadline.fromNow(maxFetchTime);
         for (int numRecords = 0;
-                numRecords < maxFetchRecords
-                        && !readerQueue.isEmpty()
-                        && deadline.hasTimeLeft()
-                        && !wakeup;
-                numRecords++) {
-            PartitionReader reader = readerQueue.poll();
+             numRecords < maxFetchRecords
+                     && !readerQueue.isEmpty()
+                     && deadline.hasTimeLeft()
+                     && !wakeup;
+             numRecords++) {
+            PulsarPartitionReader reader = readerQueue.poll();
             try {
                 Iterator<Message<?>> messages = reader.nextBatch();
                 if (messages.hasNext()) {
@@ -172,11 +173,6 @@ public class PulsarPartitionSplitReader<T>
                     }
                 }
                 if (reader.isStopped()) {
-                    LOG.debug(
-                            "{} has reached stopping condition, current offset is {} @ timestamp {}",
-                            reader.getSplit(),
-                            reader.getLastMessage().getMessageId(),
-                            reader.getLastMessage().getEventTime());
                     recordsBySplits.addFinishedSplit(reader.getSplit().splitId());
                     reader.close();
                 } else {
@@ -209,89 +205,88 @@ public class PulsarPartitionSplitReader<T>
         } catch (TimeoutException e) {
             throw new IllegalStateException("Cannot create reader: " + e.getMessage());
         } catch (InterruptedException e) {
-            Thread.interrupted();
+            Thread.currentThread().interrupt();
         }
     }
 
-    public CompletableFuture<PartitionReader> createPartitionReaderAsync(PulsarPartitionSplit split)
+    public CompletableFuture<PulsarPartitionReader> createPartitionReaderAsync(PulsarPartitionSplit split)
             throws PulsarClientException {
-        AbstractPartition abstractPartition = split.getPartition();
-        CompletableFuture<PartitionReader> completableFuture = null;
-        if (abstractPartition.getPartitionType() == AbstractPartition.PartitionType.Broker) {
-            BrokerPartition partition = (BrokerPartition) abstractPartition;
-            try {
-                ConsumerConfigurationData<byte[]> conf = consumerConfigurationData.clone();
-                CompletableFuture<Consumer<byte[]>> subscribeFuture = new CompletableFuture<>();
-                if (partition.getTopicRange().getPulsarRange() != BrokerPartition.FULL_RANGE) {
-                    conf.setKeySharedPolicy(
-                            KeySharedPolicy.stickyHashRange()
-                                    .ranges(partition.getTopicRange().getPulsarRange()));
-                    conf.setSubscriptionName(
-                            conf.getSubscriptionName()
-                                    + partition.getTopicRange().getPulsarRange());
-                }
-                MessageId lastConsumedId = split.getLastConsumedId();
-                StartOffsetInitializer startOffsetInitializer =
-                        lastConsumedId != null
-                                ? StartOffsetInitializer.offset(lastConsumedId, false)
-                                : split.getStartOffsetInitializer();
-                // initialize offset on builder for absolute offsets
-                CreationConfiguration creationConfiguration = new CreationConfiguration(conf);
-                startOffsetInitializer.initializeBeforeCreation(partition, creationConfiguration);
-                ConsumerImpl<byte[]> consumer =
-                        new ConsumerImpl<byte[]>(
-                                (PulsarClientImpl) client,
-                                partition.getTopic(),
-                                creationConfiguration.getConsumerConfigurationData(),
-                                listenerExecutor,
-                                TopicName.getPartitionIndex(partition.getTopic()),
-                                false,
-                                subscribeFuture,
-                                creationConfiguration.getInitialMessageId(),
-                                creationConfiguration.getRollbackInS(),
-                                Schema.BYTES,
-                                null,
-                                true) {};
-                // initialize offset on reader for time-based seeking
-                startOffsetInitializer.initializeAfterCreation(partition, consumer);
-                split.getStopCondition().init(partition, consumer);
-
-                if (offsetVerification != OffsetVerification.IGNORE) {
-                    startOffsetInitializer
-                            .verifyOffset(
-                                    partition,
-                                    wrap(
-                                            () ->
-                                                    Optional.ofNullable(
-                                                            pulsarAdmin
-                                                                    .topics()
-                                                                    .getLastMessageId(
-                                                                            partition.getTopic()))),
-                                    wrap(
-                                            () ->
-                                                    pulsarAdmin.topics()
-                                                            .peekMessages(
-                                                                    partition.getTopic(),
-                                                                    conf.getSubscriptionName(),
-                                                                    1)
-                                                            .stream()
-                                                            .findFirst()))
-                            .ifPresent(error -> reportDataLoss(partition, error));
-                }
-
-                completableFuture =
-                        subscribeFuture.thenApply(
-                                c ->
-                                        new PartitionReader(
-                                                split, consumer, split.getStopCondition()));
-            } catch (PulsarClientException.TopicDoesNotExistException e) {
-                throw new IllegalStateException("Cannot subscribe to partition " + partition, e);
-            } catch (PulsarClientException e) {
-                throw new IllegalStateException("Cannot add split " + split, e);
-            } catch (Exception e) {
-                throw PulsarClientException.unwrap(e);
+        PartitionRange partition = split.getPartition();
+        CompletableFuture<PulsarPartitionReader> completableFuture = null;
+        try {
+            ConsumerConfigurationData<byte[]> conf = consumerConfigurationData.clone();
+            CompletableFuture<Consumer<byte[]>> subscribeFuture = new CompletableFuture<>();
+            if (!partition.getRange().equals(PulsarRange.FULL_RANGE)) {
+                conf.setKeySharedPolicy(
+                        KeySharedPolicy.stickyHashRange()
+                                .ranges(partition.getRange()));
+                conf.setSubscriptionName(
+                        conf.getSubscriptionName()
+                                + partition.getRange());
             }
+            MessageId lastConsumedId = split.getLastConsumedId();
+            StartOffsetInitializer startOffsetInitializer =
+                    lastConsumedId != null
+                            ? StartOffsetInitializer.offset(lastConsumedId, false)
+                            : split.getStartOffsetInitializer();
+            // initialize offset on builder for absolute offsets
+            CreationConfiguration creationConfiguration = new CreationConfiguration(conf);
+            startOffsetInitializer.initializeBeforeCreation(partition, creationConfiguration);
+            ConsumerImpl<byte[]> consumer =
+                    new ConsumerImpl<byte[]>(
+                            (PulsarClientImpl) client,
+                            partition.getTopic(),
+                            creationConfiguration.getConsumerConfigurationData(),
+                            listenerExecutor,
+                            TopicName.getPartitionIndex(partition.getTopic()),
+                            false,
+                            subscribeFuture,
+                            creationConfiguration.getInitialMessageId(),
+                            creationConfiguration.getRollbackInS(),
+                            Schema.BYTES,
+                            null,
+                            true) {
+                    };
+            // initialize offset on reader for time-based seeking
+            startOffsetInitializer.initializeAfterCreation(partition, consumer);
+            split.getStopCondition().init(partition, consumer);
+
+            if (offsetVerification != OffsetVerification.IGNORE) {
+                startOffsetInitializer
+                        .verifyOffset(
+                                partition,
+                                wrap(
+                                        () ->
+                                                Optional.ofNullable(
+                                                        pulsarAdmin
+                                                                .topics()
+                                                                .getLastMessageId(
+                                                                        partition.getTopic()))),
+                                wrap(
+                                        () ->
+                                                pulsarAdmin.topics()
+                                                        .peekMessages(
+                                                                partition.getTopic(),
+                                                                conf.getSubscriptionName(),
+                                                                1)
+                                                        .stream()
+                                                        .findFirst()))
+                        .ifPresent(error -> reportDataLoss(partition, error));
+            }
+
+            completableFuture =
+                    subscribeFuture.thenApply(
+                            c ->
+                                    new PulsarPartitionReader(
+                                            split, consumer, split.getStopCondition()));
+        } catch (PulsarClientException.TopicDoesNotExistException e) {
+            throw new IllegalStateException("Cannot subscribe to partition " + partition, e);
+        } catch (PulsarClientException e) {
+            throw new IllegalStateException("Cannot add split " + split, e);
+        } catch (Exception e) {
+            throw PulsarClientException.unwrap(e);
         }
+
         // for now we just support broker type partition.
         return completableFuture;
     }
@@ -307,7 +302,7 @@ public class PulsarPartitionSplitReader<T>
         };
     }
 
-    private void reportDataLoss(AbstractPartition partition, String error) {
+    private void reportDataLoss(PartitionRange partition, String error) {
         String fullError =
                 String.format(
                         "While initializing %s encountered the following error: %s.\n"
@@ -393,7 +388,8 @@ public class PulsarPartitionSplitReader<T>
         }
 
         @Override
-        public void close() {}
+        public void close() {
+        }
 
         private List<T> getRecords() {
             return records;

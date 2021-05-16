@@ -16,10 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.offset;
+package org.apache.flink.connector.pulsar.source.enumerator.initializer;
 
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.Consumer;
 import org.apache.pulsar.client.api.Message;
@@ -37,6 +36,7 @@ import java.util.function.Supplier;
  */
 public class TimestampStartOffsetInitializer implements StartOffsetInitializer {
     private static final long serialVersionUID = 2932230571773627233L;
+
     private final long startingTimestamp;
 
     public TimestampStartOffsetInitializer(long startingTimestamp) {
@@ -44,14 +44,14 @@ public class TimestampStartOffsetInitializer implements StartOffsetInitializer {
     }
 
     @Override
-    public void initializeAfterCreation(AbstractPartition partition, Consumer<?> consumer)
+    public void initializeAfterCreation(PartitionRange partition, Consumer<?> consumer)
             throws PulsarClientException {
         consumer.seek(startingTimestamp);
     }
 
     @Override
     public Optional<String> verifyOffset(
-            AbstractPartition partition,
+            PartitionRange partition,
             Supplier<Optional<MessageId>> lastMessageIdFetcher,
             Supplier<Optional<Message<byte[]>>> firstMessageFetcher) {
         return firstMessageFetcher.get().isPresent()

@@ -18,9 +18,9 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator;
 
+import org.apache.flink.connector.base.source.utils.SerdeUtils;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
-import org.apache.flink.connector.pulsar.source.util.SerdeUtils;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.IOException;
@@ -28,7 +28,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** The {@link SimpleVersionedSerializer Serializer} for the enumerator state of Pulsar source. */
+/**
+ * The {@link SimpleVersionedSerializer Serializer} for the enumerator state of Pulsar source.
+ */
 public class PulsarSourceEnumeratorStateSerializer
         implements SimpleVersionedSerializer<PulsarSourceEnumeratorState> {
 

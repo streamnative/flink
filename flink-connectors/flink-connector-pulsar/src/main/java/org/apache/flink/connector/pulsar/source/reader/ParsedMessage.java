@@ -24,6 +24,7 @@ import java.util.Objects;
 
 /** Represents the parsed message. */
 public class ParsedMessage<T> {
+
     private final T payload;
     private final MessageId messageId;
     private final long timestamp;

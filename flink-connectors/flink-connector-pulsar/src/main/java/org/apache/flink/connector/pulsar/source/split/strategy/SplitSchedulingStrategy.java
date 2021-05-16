@@ -16,16 +16,21 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.split.strategy;
 
+import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-/** An interface to determine which subtask to execute the split on. */
+/**
+ * An interface to determine which subtask to execute when the split on.
+ */
+@PublicEvolving
 public interface SplitSchedulingStrategy extends Serializable {
+
     int getIndexOfReader(int numReaders, PulsarPartitionSplit split);
 
     void addSplitsBack(

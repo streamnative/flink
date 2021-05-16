@@ -16,8 +16,9 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.reader;
 
+import org.apache.flink.connector.pulsar.source.StopCondition;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 
 import org.apache.pulsar.client.api.Message;
@@ -33,42 +34,36 @@ import java.io.Closeable;
 import java.util.Collections;
 import java.util.Iterator;
 
-/** Using to reade data form partition. */
-// TODO make this class abstract to implements streamPartitionReader and
-// bkPartitionReader、tsPartitionReader
-// to read from broker and bookie or tiredStorage.
-public class PartitionReader implements Comparable<PartitionReader>, Closeable {
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
-    private static final Logger LOG = LoggerFactory.getLogger(PartitionReader.class);
+/**
+ * Using to reade data form partition.
+ */
+class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closeable {
+    private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionReader.class);
 
     private static final long MAX_BACKOFF = 1L << 30;
+
     private final PulsarPartitionSplit split;
     private final ConsumerImpl<byte[]> consumer;
     private final StopCondition stopCondition;
-    @Nullable private Message lastMessage;
+
+    @Nullable
+    private Message<?> lastMessage;
     private long backOff = 1;
     private boolean stopped;
 
-    public PartitionReader(
+    public PulsarPartitionReader(
             PulsarPartitionSplit split,
             ConsumerImpl<byte[]> consumer,
             StopCondition stopCondition) {
-        this.split = split;
-        this.consumer = consumer;
-        this.stopCondition = stopCondition;
+        this.split = checkNotNull(split);
+        this.consumer = checkNotNull(consumer);
+        this.stopCondition = checkNotNull(stopCondition);
     }
 
     public PulsarPartitionSplit getSplit() {
         return split;
-    }
-
-    @Nullable
-    public Message getLastMessage() {
-        return lastMessage;
-    }
-
-    public void setLastMessage(@Nullable Message lastMessage) {
-        this.lastMessage = lastMessage;
     }
 
     public Iterator<Message<?>> nextBatch() throws PulsarClientException {
@@ -77,8 +72,9 @@ public class PartitionReader implements Comparable<PartitionReader>, Closeable {
             Iterator<Message<byte[]>> messageIterator = messages.iterator();
             if (messageIterator.hasNext()) {
                 backOff = 1;
-                return new Iterator<Message<?>>() {
-                    @Nullable Message<byte[]> next = initNext();
+                return new Iterator<>() {
+                    @Nullable
+                    Message<byte[]> next = initNext();
 
                     @Override
                     public boolean hasNext() {
@@ -97,16 +93,25 @@ public class PartitionReader implements Comparable<PartitionReader>, Closeable {
                         if (!messageIterator.hasNext()) {
                             return null;
                         }
-                        Message<byte[]> next = messageIterator.next();
-                        switch (stopCondition.shouldStop(split.getPartition(), next)) {
+                        Message<byte[]> nextMsg = messageIterator.next();
+                        switch (stopCondition.shouldStop(split.getPartition(), nextMsg)) {
                             case STOP_BEFORE:
                                 stopped = true;
                                 return null;
                             case STOP_AFTER:
                                 stopped = true;
-                                return next;
+                                if (lastMessage != null) {
+                                    LOG.debug(
+                                            "{} has reached stopping condition, current offset is {} @ timestamp {}",
+                                            split,
+                                            lastMessage.getMessageId(),
+                                            lastMessage.getEventTime());
+                                } else {
+                                    LOG.debug("{} has reached stopping condition", split);
+                                }
+                                return nextMsg;
                             default:
-                                return next;
+                                return nextMsg;
                         }
                     }
                 };
@@ -124,7 +129,7 @@ public class PartitionReader implements Comparable<PartitionReader>, Closeable {
     }
 
     @Override
-    public int compareTo(PartitionReader o) {
+    public int compareTo(PulsarPartitionReader o) {
         return Long.compare(getOrder(), o.getOrder());
     }
 

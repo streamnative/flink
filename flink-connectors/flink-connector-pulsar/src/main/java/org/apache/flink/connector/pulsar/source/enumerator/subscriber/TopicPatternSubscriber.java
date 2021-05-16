@@ -16,13 +16,11 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source.subscription;
+package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
-import org.apache.flink.connector.pulsar.source.AbstractPartition;
-import org.apache.flink.connector.pulsar.source.BrokerPartition;
-import org.apache.flink.connector.pulsar.source.SplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
-import org.apache.flink.connector.pulsar.source.util.TopicRange;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -42,9 +40,12 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** A subscriber to a topic pattern. */
+/**
+ * A subscriber to a topic pattern.
+ */
 public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     private static final long serialVersionUID = -7471048577725467797L;
+
     private final String namespace;
     private final SplitDivisionStrategy splitDivisionStrategy;
     private final Pattern topicPattern;
@@ -55,7 +56,7 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
             Set<String> topicPatterns) {
         this.namespace = checkNotNull(namespace);
         this.splitDivisionStrategy = checkNotNull(splitDivisionStrategy);
-        checkArgument(topicPatterns.size() > 0, "At least one pattern needs to be specified");
+        checkArgument(!topicPatterns.isEmpty(), "At least one pattern needs to be specified");
         // shorten patterns and compile into one big pattern
         topicPattern =
                 Pattern.compile(
@@ -65,9 +66,9 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     }
 
     @Override
-    public Collection<AbstractPartition> getCurrentPartitions(PulsarAdmin pulsarAdmin)
+    public List<PartitionRange> getCurrentPartitions(PulsarAdmin pulsarAdmin)
             throws PulsarAdminException, InterruptedException, IOException {
-        List<AbstractPartition> partitions = new ArrayList<>();
+        List<PartitionRange> partitions = new ArrayList<>();
         Topics topics = pulsarAdmin.topics();
 
         List<String> partitionedTopicList = topics.getPartitionedTopicList(namespace);
@@ -82,19 +83,16 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
                                     splitDivisionStrategy.getRanges(topic, pulsarAdmin, context);
                             for (Range range : ranges) {
                                 if (numPartitions == 0) {
-                                    partitions.add(
-                                            new BrokerPartition(new TopicRange(topic, range)));
+                                    partitions.add(new PartitionRange(topic, range));
                                 } else {
                                     for (int partitionIndex = 0;
-                                            partitionIndex < topicMetadata.partitions;
-                                            partitionIndex++) {
+                                         partitionIndex < topicMetadata.partitions;
+                                         partitionIndex++) {
                                         String fullName =
                                                 topic
                                                         + TopicName.PARTITIONED_TOPIC_SUFFIX
                                                         + partitionIndex;
-                                        partitions.add(
-                                                new BrokerPartition(
-                                                        new TopicRange(fullName, range)));
+                                        partitions.add(new PartitionRange(fullName, range));
                                     }
                                 }
                             }
@@ -104,6 +102,7 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
         } catch (TimeoutException e) {
             throw new IOException("Cannot retrieve partition information: " + e.getMessage());
         }
+
         return partitions;
     }
 }

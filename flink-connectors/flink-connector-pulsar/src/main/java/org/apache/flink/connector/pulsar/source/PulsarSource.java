@@ -34,29 +34,30 @@ import org.apache.flink.connector.base.source.reader.synchronization.FutureCompl
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumerator;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumeratorState;
 import org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumeratorStateSerializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
 import org.apache.flink.connector.pulsar.source.reader.ParsedMessage;
 import org.apache.flink.connector.pulsar.source.reader.PulsarPartitionSplitReader;
 import org.apache.flink.connector.pulsar.source.reader.PulsarRecordEmitter;
 import org.apache.flink.connector.pulsar.source.reader.PulsarSourceReader;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplitSerializer;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
 import org.apache.flink.connector.pulsar.source.util.CachedPulsarClient;
 import org.apache.flink.connector.pulsar.source.util.PulsarAdminUtils;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
+
+import org.apache.flink.shaded.guava18.com.google.common.io.Closer;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
-import org.apache.pulsar.shade.com.google.common.io.Closer;
-
-import javax.annotation.Nonnull;
+import org.apache.pulsar.client.util.ExecutorProvider;
 
 import java.util.Collections;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -69,8 +70,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public class PulsarSource<OUT>
         implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>,
-                ResultTypeQueryable<OUT> {
+        ResultTypeQueryable<OUT> {
     private static final long serialVersionUID = -8755372893283732098L;
+
     // Users can choose only one of the following ways to specify the topics to consume from.
     private final PulsarSubscriber subscriber;
     // Users can specify the starting / stopping offset initializer.
@@ -89,7 +91,7 @@ public class PulsarSource<OUT>
     private PulsarAdmin pulsarAdmin;
     private PulsarClient pulsarClient;
 
-    public PulsarSource(
+    PulsarSource(
             PulsarSubscriber subscriber,
             StartOffsetInitializer startOffsetInitializer,
             StopCondition stopCondition,
@@ -106,13 +108,13 @@ public class PulsarSource<OUT>
         this.messageDeserializer = checkNotNull(messageDeserializer);
         this.configuration = checkNotNull(configuration);
         this.pulsarConfiguration = checkNotNull(pulsarConfiguration);
-        adminUrl = configuration.get(PulsarSourceOptions.ADMIN_URL);
+        this.adminUrl = configuration.get(PulsarSourceOptions.ADMIN_URL);
         this.consumerConfigurationData = consumerConfigurationData;
         this.splitSchedulingStrategy = splitSchedulingStrategy;
     }
 
     /**
-     * Get a pulsarSourceBuilder to build a {@link PulsarSource}.
+     * Get a {@link PulsarSourceBuilder} to build a {@link PulsarSource}.
      *
      * @return a Pulsar source builder.
      */
@@ -134,8 +136,8 @@ public class PulsarSource<OUT>
     public SourceReader<OUT, PulsarPartitionSplit> createReader(SourceReaderContext readerContext) {
         FutureCompletingBlockingQueue<RecordsWithSplitIds<ParsedMessage<OUT>>> elementsQueue =
                 new FutureCompletingBlockingQueue<>();
-        ExecutorService listenerExecutor =
-                Executors.newScheduledThreadPool(1, r -> new Thread(r, "Pulsar listener executor"));
+        ExecutorProvider listenerExecutor =
+                new ExecutorProvider(1, r -> new Thread(r, "Pulsar listener executor"));
         Closer splitCloser = Closer.create();
         splitCloser.register(listenerExecutor::shutdownNow);
         Supplier<SplitReader<ParsedMessage<OUT>, PulsarPartitionSplit>> splitReaderSupplier =
@@ -162,7 +164,6 @@ public class PulsarSource<OUT>
                 splitCloser::close);
     }
 
-    @Nonnull
     public PulsarAdmin getPulsarAdmin() {
         if (pulsarAdmin == null) {
             try {
@@ -174,12 +175,11 @@ public class PulsarSource<OUT>
         return pulsarAdmin;
     }
 
-    @Nonnull
-    public PulsarClient getClient() {
+    private PulsarClient getClient() {
         if (pulsarClient == null) {
             try {
                 pulsarClient = CachedPulsarClient.getOrCreate(pulsarConfiguration);
-            } catch (ExecutionException e) {
+            } catch (PulsarClientException e) {
                 throw new IllegalStateException("Cannot initialize pulsar client", e);
             }
         }
@@ -221,8 +221,7 @@ public class PulsarSource<OUT>
     }
 
     @Override
-    public SimpleVersionedSerializer<PulsarSourceEnumeratorState>
-            getEnumeratorCheckpointSerializer() {
+    public SimpleVersionedSerializer<PulsarSourceEnumeratorState> getEnumeratorCheckpointSerializer() {
         return new PulsarSourceEnumeratorStateSerializer();
     }
 }

@@ -18,10 +18,18 @@
 
 package org.apache.flink.connector.pulsar.source.util;
 
+import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
+
 import org.apache.pulsar.client.api.Range;
 
-/** Utilities for source sink options parsing. */
-public class SourceSinkUtils {
+/**
+ * Utilities for source sink options parsing.
+ */
+public final class SourceSinkUtils {
+
+    private SourceSinkUtils() {
+        // No public constructor
+    }
 
     /**
      * Get shard information of the task Fragmentation rules, Can be divided equally: each subtask
@@ -31,10 +39,11 @@ public class SourceSinkUtils {
      *
      * @param countOfSubTasks total subtasks
      * @param indexOfSubTasks current subtask index on subtasks
+     *
      * @return task range
      */
     public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {
-        int countOfKey = SerializableRange.fullRangeEnd + 1;
+        int countOfKey = PulsarRange.FULL_RANGE_END + 1;
         int part = countOfKey / countOfSubTasks;
         int remainder = countOfKey % countOfSubTasks;
 

@@ -16,19 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.flink.connector.pulsar.source;
+package org.apache.flink.connector.pulsar.source.split.strategy.scheduling;
 
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** SplitSchedulingStrategy for Hash mode. */
+/**
+ * SplitSchedulingStrategy for Hash mode.
+ */
 public class HashSplitSchedulingStrategy implements SplitSchedulingStrategy {
+    private static final long serialVersionUID = 1709792537703428218L;
+
     public static final HashSplitSchedulingStrategy INSTANCE = new HashSplitSchedulingStrategy();
 
-    private HashSplitSchedulingStrategy() {}
+    private HashSplitSchedulingStrategy() {
+        // Singleton instance.
+    }
 
     @Override
     public int getIndexOfReader(int numReaders, PulsarPartitionSplit split) {

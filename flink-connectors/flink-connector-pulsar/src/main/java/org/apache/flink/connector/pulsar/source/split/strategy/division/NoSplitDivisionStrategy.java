@@ -30,9 +30,7 @@ import org.apache.pulsar.client.api.Range;
 import java.util.Collection;
 import java.util.Collections;
 
-/**
- * The SplitDivisionStrategy represent no range splitting is required.
- */
+/** The SplitDivisionStrategy represent no range splitting is required. */
 public class NoSplitDivisionStrategy implements SplitDivisionStrategy {
     private static final long serialVersionUID = 6013618337794320928L;
 

@@ -70,7 +70,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public class PulsarSource<OUT>
         implements Source<OUT, PulsarPartitionSplit, PulsarSourceEnumeratorState>,
-        ResultTypeQueryable<OUT> {
+                ResultTypeQueryable<OUT> {
     private static final long serialVersionUID = -8755372893283732098L;
 
     // Users can choose only one of the following ways to specify the topics to consume from.
@@ -221,7 +221,8 @@ public class PulsarSource<OUT>
     }
 
     @Override
-    public SimpleVersionedSerializer<PulsarSourceEnumeratorState> getEnumeratorCheckpointSerializer() {
+    public SimpleVersionedSerializer<PulsarSourceEnumeratorState>
+            getEnumeratorCheckpointSerializer() {
         return new PulsarSourceEnumeratorStateSerializer();
     }
 }

@@ -38,9 +38,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-/**
- * A interface for users to specify the starting offset of a {@link PulsarPartitionSplit}.
- */
+/** A interface for users to specify the starting offset of a {@link PulsarPartitionSplit}. */
 @PublicEvolving
 public interface StartOffsetInitializer extends Serializable {
 
@@ -51,8 +49,7 @@ public interface StartOffsetInitializer extends Serializable {
      * @param configuration the configuration used to create consumer
      */
     default void initializeBeforeCreation(
-            PartitionRange partition, CreationConfiguration configuration) {
-    }
+            PartitionRange partition, CreationConfiguration configuration) {}
 
     /**
      * Initializes the offset for the given consumer and partition.
@@ -61,15 +58,13 @@ public interface StartOffsetInitializer extends Serializable {
      * @param consumer the consumer
      */
     default void initializeAfterCreation(PartitionRange partition, Consumer<?> consumer)
-            throws PulsarClientException {
-    }
+            throws PulsarClientException {}
 
     /**
      * Verifies if the offset was initialized correctly.
      *
      * @return an error message if no appropriate data point could be found or empty if
-     *         initialization worked correctly.
-     *
+     *     initialization worked correctly.
      * @see PulsarSourceOptions#VERIFY_INITIAL_OFFSETS
      */
     default Optional<String> verifyOffset(
@@ -125,8 +120,7 @@ public interface StartOffsetInitializer extends Serializable {
 
         private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
 
-        @Nullable
-        private MessageId initialMessageId;
+        @Nullable private MessageId initialMessageId;
 
         private long rollbackInS = 0;
 

@@ -31,9 +31,7 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * The base implementations of {@link PulsarSubscriber}.
- */
+/** The base implementations of {@link PulsarSubscriber}. */
 public abstract class AbstractPulsarSubscriber implements PulsarSubscriber {
     private static final long serialVersionUID = 1721537402108912442L;
 

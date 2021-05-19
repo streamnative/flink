@@ -28,9 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * The {@link SimpleVersionedSerializer Serializer} for the enumerator state of Pulsar source.
- */
+/** The {@link SimpleVersionedSerializer Serializer} for the enumerator state of Pulsar source. */
 public class PulsarSourceEnumeratorStateSerializer
         implements SimpleVersionedSerializer<PulsarSourceEnumeratorState> {
 

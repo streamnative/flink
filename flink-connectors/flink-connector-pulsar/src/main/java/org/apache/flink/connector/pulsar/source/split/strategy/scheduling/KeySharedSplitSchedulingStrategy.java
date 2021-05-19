@@ -27,9 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * SplitSchedulingStrategy for keyShared mode.
- */
+/** SplitSchedulingStrategy for keyShared mode. */
 public class KeySharedSplitSchedulingStrategy implements SplitSchedulingStrategy {
     private static final long serialVersionUID = 7248957140526275772L;
 

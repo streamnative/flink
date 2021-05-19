@@ -35,16 +35,14 @@ import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.
 import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.STOP_AFTER;
 import static org.apache.flink.connector.pulsar.source.StopCondition.StopResult.STOP_BEFORE;
 
-/**
- * An interface to control when to stop.
- */
+/** An interface to control when to stop. */
 @PublicEvolving
 public interface StopCondition extends Serializable {
 
     StopResult shouldStop(PartitionRange partition, Message<?> message);
 
     Comparator<MessageId> NON_BATCH_COMPARATOR =
-            new Comparator<>() {
+            new Comparator<MessageId>() {
                 final Comparator<MessageIdImpl> implComparator =
                         Comparator.comparingLong(MessageIdImpl::getLedgerId)
                                 .thenComparingLong(MessageIdImpl::getEntryId)
@@ -57,8 +55,7 @@ public interface StopCondition extends Serializable {
             };
 
     default void init(PartitionRange partition, Consumer<byte[]> consumer)
-            throws PulsarClientException {
-    }
+            throws PulsarClientException {}
 
     static StopCondition stopAtMessageId(MessageId id) {
         return (partition, message) -> hitMessageId(message, id) ? STOP_BEFORE : DONT_STOP;
@@ -120,15 +117,14 @@ public interface StopCondition extends Serializable {
         return (partition, message) -> DONT_STOP;
     }
 
-    /**
-     * Enum for stop condition.
-     */
+    /** Enum for stop condition. */
     enum StopResult {
         STOP_BEFORE,
         STOP_AFTER,
         DONT_STOP
     }
 
+    /** Common class the for stopping at the given message. */
     abstract class LastStopCondition implements StopCondition {
         private static final long serialVersionUID = 8822508647807192794L;
 

@@ -22,13 +22,13 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.enumerator.initializer.SpecifiedStartOffsetInitializer;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
-import org.apache.flink.connector.pulsar.source.split.strategy.scheduling.KeySharedSplitSchedulingStrategy;
 import org.apache.flink.connector.pulsar.source.split.strategy.division.UniformSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.scheduling.KeySharedSplitSchedulingStrategy;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBaseWithFlink;
@@ -66,8 +66,7 @@ import static org.junit.Assert.assertTrue;
 /** Unite test class for {@link PulsarSource}. */
 public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
 
-    @Rule
-    public RetryRule retryRule = new RetryRule();
+    @Rule public RetryRule retryRule = new RetryRule();
 
     @Before
     public void clearState() {
@@ -241,9 +240,7 @@ public class PulsarSourceITCase extends PulsarTestBaseWithFlink {
         expectedData.addAll(Arrays.asList("2", "3", "10", "11", "12"));
 
         Map<PartitionRange, MessageId> offset = new HashMap<>();
-        offset.put(
-                new PartitionRange(topic, PulsarRange.FULL_RANGE),
-                mids.get(4));
+        offset.put(new PartitionRange(topic, PulsarRange.FULL_RANGE), mids.get(4));
 
         StreamExecutionEnvironment see = StreamExecutionEnvironment.getExecutionEnvironment();
         see.setParallelism(1);

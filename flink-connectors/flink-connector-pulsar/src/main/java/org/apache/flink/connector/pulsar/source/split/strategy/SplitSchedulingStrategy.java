@@ -25,9 +25,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
-/**
- * An interface to determine which subtask to execute when the split on.
- */
+/** An interface to determine which subtask to execute when the split on. */
 @PublicEvolving
 public interface SplitSchedulingStrategy extends Serializable {
 

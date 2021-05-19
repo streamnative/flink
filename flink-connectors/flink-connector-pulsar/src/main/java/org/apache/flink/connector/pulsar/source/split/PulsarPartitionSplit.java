@@ -20,8 +20,8 @@ package org.apache.flink.connector.pulsar.source.split;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceSplit;
-import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.MessageId;
@@ -32,9 +32,7 @@ import java.io.Serializable;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/**
- * A {@link SourceSplit} for a Pulsar partition.
- */
+/** A {@link SourceSplit} for a Pulsar partition. */
 @Internal
 public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneable {
     private static final long serialVersionUID = -7680060469197244137L;
@@ -43,8 +41,7 @@ public class PulsarPartitionSplit implements SourceSplit, Serializable, Cloneabl
     private final StartOffsetInitializer startOffsetInitializer;
     private final StopCondition stopCondition;
 
-    @Nullable
-    private MessageId lastConsumedId;
+    @Nullable private MessageId lastConsumedId;
 
     public PulsarPartitionSplit(
             PartitionRange partition,

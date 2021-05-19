@@ -22,9 +22,7 @@ import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
 
 import org.apache.pulsar.client.api.Range;
 
-/**
- * Utilities for source sink options parsing.
- */
+/** Utilities for source sink options parsing. */
 public final class SourceSinkUtils {
 
     private SourceSinkUtils() {
@@ -39,7 +37,6 @@ public final class SourceSinkUtils {
      *
      * @param countOfSubTasks total subtasks
      * @param indexOfSubTasks current subtask index on subtasks
-     *
      * @return task range
      */
     public static Range distributeRange(int countOfSubTasks, int indexOfSubTasks) {

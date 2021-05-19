@@ -32,9 +32,7 @@ import java.util.Objects;
 import static org.apache.flink.connector.pulsar.source.split.range.PulsarRange.FULL_RANGE_END;
 import static org.apache.flink.connector.pulsar.source.split.range.PulsarRange.FULL_RANGE_START;
 
-/**
- * The range for key_share mode in topic.
- */
+/** The range for key_share mode in topic. */
 public class PartitionRange implements Serializable, Comparable<PartitionRange> {
     private static final long serialVersionUID = 4327829161560400869L;
 
@@ -47,9 +45,7 @@ public class PartitionRange implements Serializable, Comparable<PartitionRange> 
         this(null, null);
     }
 
-    /**
-     * Create a full range with the given topic.
-     */
+    /** Create a full range with the given topic. */
     public PartitionRange(String topic) {
         this.topic = topic;
         this.range = PulsarRange.of(FULL_RANGE_START, FULL_RANGE_END);
@@ -115,10 +111,7 @@ public class PartitionRange implements Serializable, Comparable<PartitionRange> 
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-                .add("topic", topic)
-                .add("range", range)
-                .toString();
+        return MoreObjects.toStringHelper(this).add("topic", topic).add("range", range).toString();
     }
 
     @Override

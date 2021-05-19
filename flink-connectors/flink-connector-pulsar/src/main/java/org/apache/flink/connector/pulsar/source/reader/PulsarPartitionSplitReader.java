@@ -25,11 +25,11 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
-import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions.OffsetVerification;
 import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer.CreationConfiguration;
+import org.apache.flink.connector.pulsar.source.reader.deserializer.MessageDeserializer;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
@@ -145,11 +145,11 @@ public class PulsarPartitionSplitReader<T>
 
         Deadline deadline = Deadline.fromNow(maxFetchTime);
         for (int numRecords = 0;
-             numRecords < maxFetchRecords
-                     && !readerQueue.isEmpty()
-                     && deadline.hasTimeLeft()
-                     && !wakeup;
-             numRecords++) {
+                numRecords < maxFetchRecords
+                        && !readerQueue.isEmpty()
+                        && deadline.hasTimeLeft()
+                        && !wakeup;
+                numRecords++) {
             PulsarPartitionReader reader = readerQueue.poll();
             try {
                 Iterator<Message<?>> messages = reader.nextBatch();
@@ -209,8 +209,8 @@ public class PulsarPartitionSplitReader<T>
         }
     }
 
-    public CompletableFuture<PulsarPartitionReader> createPartitionReaderAsync(PulsarPartitionSplit split)
-            throws PulsarClientException {
+    public CompletableFuture<PulsarPartitionReader> createPartitionReaderAsync(
+            PulsarPartitionSplit split) throws PulsarClientException {
         PartitionRange partition = split.getPartition();
         CompletableFuture<PulsarPartitionReader> completableFuture = null;
         try {
@@ -218,11 +218,8 @@ public class PulsarPartitionSplitReader<T>
             CompletableFuture<Consumer<byte[]>> subscribeFuture = new CompletableFuture<>();
             if (!partition.getRange().equals(PulsarRange.FULL_RANGE)) {
                 conf.setKeySharedPolicy(
-                        KeySharedPolicy.stickyHashRange()
-                                .ranges(partition.getRange()));
-                conf.setSubscriptionName(
-                        conf.getSubscriptionName()
-                                + partition.getRange());
+                        KeySharedPolicy.stickyHashRange().ranges(partition.getRange()));
+                conf.setSubscriptionName(conf.getSubscriptionName() + partition.getRange());
             }
             MessageId lastConsumedId = split.getLastConsumedId();
             StartOffsetInitializer startOffsetInitializer =
@@ -245,8 +242,7 @@ public class PulsarPartitionSplitReader<T>
                             creationConfiguration.getRollbackInS(),
                             Schema.BYTES,
                             null,
-                            true) {
-                    };
+                            true) {};
             // initialize offset on reader for time-based seeking
             startOffsetInitializer.initializeAfterCreation(partition, consumer);
             split.getStopCondition().init(partition, consumer);
@@ -388,8 +384,7 @@ public class PulsarPartitionSplitReader<T>
         }
 
         @Override
-        public void close() {
-        }
+        public void close() {}
 
         private List<T> getRecords() {
             return records;

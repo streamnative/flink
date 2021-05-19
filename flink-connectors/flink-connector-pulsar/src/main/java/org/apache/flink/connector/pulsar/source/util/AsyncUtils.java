@@ -31,9 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiPredicate;
 
-/**
- * A util class for asynchronous call of method.
- */
+/** A util class for asynchronous call of method. */
 public final class AsyncUtils {
 
     private AsyncUtils() {

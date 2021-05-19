@@ -37,9 +37,7 @@ import java.util.concurrent.TimeoutException;
 
 import static org.apache.flink.util.Preconditions.checkArgument;
 
-/**
- * A subscriber to a fixed list of topics.
- */
+/** A subscriber to a fixed list of topics. */
 public class TopicListSubscriber extends AbstractPulsarSubscriber {
     private static final long serialVersionUID = -6917603843104947866L;
 

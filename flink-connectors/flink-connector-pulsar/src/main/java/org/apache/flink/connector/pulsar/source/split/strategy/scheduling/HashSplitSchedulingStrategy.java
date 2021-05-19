@@ -25,9 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/**
- * SplitSchedulingStrategy for Hash mode.
- */
+/** SplitSchedulingStrategy for Hash mode. */
 public class HashSplitSchedulingStrategy implements SplitSchedulingStrategy {
     private static final long serialVersionUID = 1709792537703428218L;
 

@@ -20,9 +20,9 @@ package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
-import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.admin.PulsarAdminException;
@@ -54,24 +54,19 @@ public interface PulsarSubscriber extends Serializable {
      *
      * @param pulsarAdmin The pulsar admin used to retrieve partition information.
      * @param currentAssignment the partitions that are currently assigned to the source readers.
-     *
      * @return The partition changes compared with the currently assigned partitions.
      */
     PartitionChange getPartitionChanges(
             PulsarAdmin pulsarAdmin, Set<PartitionRange> currentAssignment)
             throws PulsarAdminException, InterruptedException, IOException;
 
-    /**
-     * Get the available partition from the given pulsar admin interface.
-     */
+    /** Get the available partition from the given pulsar admin interface. */
     List<PartitionRange> getCurrentPartitions(PulsarAdmin pulsarAdmin)
             throws PulsarAdminException, InterruptedException, IOException;
 
     void setContext(SplitEnumeratorContext<PulsarPartitionSplit> context);
 
-    /**
-     * A container class to hold the newly added partitions and removed partitions.
-     */
+    /** A container class to hold the newly added partitions and removed partitions. */
     class PartitionChange {
 
         private final Set<PartitionRange> newPartitions;
@@ -93,10 +88,12 @@ public interface PulsarSubscriber extends Serializable {
 
         @Override
         public String toString() {
-            return "PartitionChange{" +
-                    "newPartitions=" + newPartitions +
-                    ", removedPartitions=" + removedPartitions +
-                    '}';
+            return "PartitionChange{"
+                    + "newPartitions="
+                    + newPartitions
+                    + ", removedPartitions="
+                    + removedPartitions
+                    + '}';
         }
     }
 

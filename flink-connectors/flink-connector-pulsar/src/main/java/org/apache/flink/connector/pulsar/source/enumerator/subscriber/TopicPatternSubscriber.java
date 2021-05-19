@@ -18,8 +18,8 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
-import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.util.AsyncUtils;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
@@ -40,9 +40,7 @@ import java.util.stream.Collectors;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/**
- * A subscriber to a topic pattern.
- */
+/** A subscriber to a topic pattern. */
 public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
     private static final long serialVersionUID = -7471048577725467797L;
 
@@ -86,8 +84,8 @@ public class TopicPatternSubscriber extends AbstractPulsarSubscriber {
                                     partitions.add(new PartitionRange(topic, range));
                                 } else {
                                     for (int partitionIndex = 0;
-                                         partitionIndex < topicMetadata.partitions;
-                                         partitionIndex++) {
+                                            partitionIndex < topicMetadata.partitions;
+                                            partitionIndex++) {
                                         String fullName =
                                                 topic
                                                         + TopicName.PARTITIONED_TOPIC_SUFFIX

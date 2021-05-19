@@ -54,8 +54,8 @@ import static org.apache.flink.util.Preconditions.checkState;
  * PulsarSource}. We have exposed the main source configurations through builder methods. You can
  * create the pulsar source with a more readable API.
  *
- * <p>TODO - Add examples for how to use the pulsar source.
- * <p>TODO - Add comments for pulsar builder method.
+ * <p>TODO - Add examples for how to use the pulsar source. TODO - Add comments for pulsar builder
+ * method.
  */
 @PublicEvolving
 public class PulsarSourceBuilder<OUT> {
@@ -96,7 +96,8 @@ public class PulsarSourceBuilder<OUT> {
             String namespace,
             SplitDivisionStrategy splitDivisionStrategy,
             Set<String> topicPatterns) {
-        return setSubscriber(getTopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns));
+        return setSubscriber(
+                getTopicPatternSubscriber(namespace, splitDivisionStrategy, topicPatterns));
     }
 
     public PulsarSourceBuilder<OUT> setSubscriber(PulsarSubscriber subscriber) {

@@ -19,10 +19,10 @@
 package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
-import org.apache.flink.connector.pulsar.source.split.strategy.division.NoSplitDivisionStrategy;
-import org.apache.flink.connector.pulsar.source.split.strategy.division.UniformSplitDivisionStrategy;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 import org.apache.flink.connector.pulsar.source.split.range.PulsarRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.NoSplitDivisionStrategy;
+import org.apache.flink.connector.pulsar.source.split.strategy.division.UniformSplitDivisionStrategy;
 import org.apache.flink.streaming.connectors.pulsar.PulsarTestBase;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Sets;
@@ -118,8 +118,7 @@ public class PulsarSubscriberTest extends PulsarTestBase {
             if (!(TOPIC2 + TopicName.PARTITIONED_TOPIC_SUFFIX + i)
                     .equals(assignedPartition2.getTopic())) {
                 expectedNewPartitions.add(
-                        new PartitionRange(
-                                TOPIC2 + "-partition-" + i, PulsarRange.FULL_RANGE));
+                        new PartitionRange(TOPIC2 + "-partition-" + i, PulsarRange.FULL_RANGE));
             }
         }
         Set<PartitionRange> expectedRemovedPartitions =

@@ -29,9 +29,7 @@ import org.apache.pulsar.client.api.Range;
 import java.io.Serializable;
 import java.util.Collection;
 
-/**
- * Split strategy for partition range.
- */
+/** Split strategy for partition range. */
 @PublicEvolving
 public interface SplitDivisionStrategy extends Serializable {
 

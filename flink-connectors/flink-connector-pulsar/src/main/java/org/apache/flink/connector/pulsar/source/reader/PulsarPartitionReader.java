@@ -36,9 +36,7 @@ import java.util.Iterator;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/**
- * Using to reade data form partition.
- */
+/** Using to reade data form partition. */
 class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionReader.class);
 
@@ -48,8 +46,7 @@ class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closea
     private final ConsumerImpl<byte[]> consumer;
     private final StopCondition stopCondition;
 
-    @Nullable
-    private Message<?> lastMessage;
+    @Nullable private Message<?> lastMessage;
     private long backOff = 1;
     private boolean stopped;
 
@@ -72,9 +69,8 @@ class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closea
             Iterator<Message<byte[]>> messageIterator = messages.iterator();
             if (messageIterator.hasNext()) {
                 backOff = 1;
-                return new Iterator<>() {
-                    @Nullable
-                    Message<byte[]> next = initNext();
+                return new Iterator<Message<?>>() {
+                    @Nullable Message<byte[]> next = initNext();
 
                     @Override
                     public boolean hasNext() {

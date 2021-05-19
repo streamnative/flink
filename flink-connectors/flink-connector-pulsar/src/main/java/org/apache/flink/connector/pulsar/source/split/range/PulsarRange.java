@@ -28,28 +28,22 @@ import java.io.Serializable;
 import java.util.Objects;
 
 /**
- * This range class is just a wrapper for pulsar client's {@link Range}.
- * The default Range class is not serializable.
- * We have to store it in split, so we create this class and extends the default one.
+ * This range class is just a wrapper for pulsar client's {@link Range}. The default Range class is
+ * not serializable. We have to store it in split, so we create this class and extends the default
+ * one.
  *
  * <p>All the properties were immutable, feel free to use this instance anywhere.
  */
 public class PulsarRange extends Range implements Serializable, Comparable<PulsarRange> {
     private static final long serialVersionUID = 3176938692775594400L;
 
-    /**
-     * The instance for pulsar full range.
-     */
+    /** The instance for pulsar full range. */
     public static final PulsarRange FULL_RANGE = PulsarRange.ofFullRange();
 
-    /**
-     * The start position for full range.
-     */
+    /** The start position for full range. */
     public static final int FULL_RANGE_START = 0;
 
-    /**
-     * The end position for full range.
-     */
+    /** The end position for full range. */
     public static final int FULL_RANGE_END = 65535;
 
     public PulsarRange() {

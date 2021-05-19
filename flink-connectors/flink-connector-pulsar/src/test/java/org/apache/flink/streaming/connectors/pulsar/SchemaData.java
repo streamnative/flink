@@ -80,9 +80,9 @@ public class SchemaData {
 
         faList =
                 Arrays.asList(
-                        new FA(new Bar[]{new Bar(true, "a")}),
-                        new FA(new Bar[]{new Bar(false, "b")}),
-                        new FA(new Bar[]{new Bar(true, "b")}));
+                        new FA(new Bar[] {new Bar(true, "a")}),
+                        new FA(new Bar[] {new Bar(false, "b")}),
+                        new FA(new Bar[] {new Bar(true, "b")}));
 
         fmList =
                 Arrays.asList(
@@ -103,8 +103,7 @@ public class SchemaData {
             this.bar = bar;
         }
 
-        public Foo() {
-        }
+        public Foo() {}
 
         @Override
         public String toString() {
@@ -163,8 +162,7 @@ public class SchemaData {
             this.s = s;
         }
 
-        public Bar() {
-        }
+        public Bar() {}
 
         @Override
         public String toString() {
@@ -213,8 +211,7 @@ public class SchemaData {
             this.l = l;
         }
 
-        public FL() {
-        }
+        public FL() {}
 
         @Override
         public String toString() {
@@ -270,8 +267,7 @@ public class SchemaData {
             this.l = l;
         }
 
-        public FA() {
-        }
+        public FA() {}
 
         @Override
         public String toString() {
@@ -327,8 +323,7 @@ public class SchemaData {
             this.m = m;
         }
 
-        public FM() {
-        }
+        public FM() {}
 
         @Override
         public String toString() {

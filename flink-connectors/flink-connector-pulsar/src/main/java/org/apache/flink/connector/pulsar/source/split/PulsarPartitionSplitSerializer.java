@@ -26,9 +26,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
-/**
- * The {@link SimpleVersionedSerializer serializer} for {@link PulsarPartitionSplit}.
- */
+/** The {@link SimpleVersionedSerializer serializer} for {@link PulsarPartitionSplit}. */
 public class PulsarPartitionSplitSerializer
         implements SimpleVersionedSerializer<PulsarPartitionSplit> {
 
@@ -42,7 +40,7 @@ public class PulsarPartitionSplitSerializer
     @Override
     public byte[] serialize(PulsarPartitionSplit split) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-             ObjectOutputStream out = new ObjectOutputStream(baos)) {
+                ObjectOutputStream out = new ObjectOutputStream(baos)) {
             out.writeObject(split);
             out.flush();
             return baos.toByteArray();
@@ -52,7 +50,7 @@ public class PulsarPartitionSplitSerializer
     @Override
     public PulsarPartitionSplit deserialize(int version, byte[] serialized) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
-             ObjectInputStream in = new ObjectInputStream(bais)) {
+                ObjectInputStream in = new ObjectInputStream(bais)) {
             try {
                 return (PulsarPartitionSplit) in.readObject();
             } catch (ClassNotFoundException e) {

@@ -25,12 +25,12 @@ import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.connector.source.SplitsAssignment;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.pulsar.source.PulsarSourceOptions;
-import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
-import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.StopCondition;
+import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
+import org.apache.flink.connector.pulsar.source.split.strategy.SplitSchedulingStrategy;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.function.ThrowingRunnable;
 
@@ -55,9 +55,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.connector.pulsar.source.util.ComponentClosingUtils.closeWithTimeout;
 
-/**
- * The enumerator class for pulsar source.
- */
+/** The enumerator class for pulsar source. */
 @Internal
 public class PulsarSourceEnumerator
         implements SplitEnumerator<PulsarPartitionSplit, PulsarSourceEnumeratorState> {
@@ -257,9 +255,7 @@ public class PulsarSourceEnumerator
                 });
     }
 
-    /**
-     * class that represents partitionSplit's change.
-     */
+    /** class that represents partitionSplit's change. */
     public static class PartitionSplitChange {
 
         private final List<PulsarPartitionSplit> newPartitionSplits;

@@ -53,8 +53,7 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
     protected static final int NUM_RECORDS_PER_SPLIT = 10;
     protected static final int TOTAL_NUM_RECORDS = NUM_RECORDS_PER_SPLIT * NUM_SPLITS;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    @Rule public ExpectedException expectedException = ExpectedException.none();
 
     @After
     public void ensureNoDangling() {
@@ -107,7 +106,7 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
                 Collections.singletonList(getSplit(0, NUM_RECORDS_PER_SPLIT, Boundedness.BOUNDED));
         // Consumer all the records in the s;oit.
         try (SourceReader<Integer, SplitT> reader =
-                     consumeRecords(splits, output, NUM_RECORDS_PER_SPLIT)) {
+                consumeRecords(splits, output, NUM_RECORDS_PER_SPLIT)) {
             // Now let the main thread poll again.
             assertEquals(
                     "The status should be ",
@@ -139,7 +138,7 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
         List<SplitT> splits =
                 getSplits(NUM_SPLITS, NUM_RECORDS_PER_SPLIT, Boundedness.CONTINUOUS_UNBOUNDED);
         try (SourceReader<Integer, SplitT> reader =
-                     consumeRecords(splits, output, NUM_SPLITS * NUM_RECORDS_PER_SPLIT)) {
+                consumeRecords(splits, output, NUM_SPLITS * NUM_RECORDS_PER_SPLIT)) {
             List<SplitT> state = reader.snapshotState(100L);
             assertEquals("The snapshot should only have 10 splits. ", NUM_SPLITS, state.size());
             for (int i = 0; i < NUM_SPLITS; i++) {
@@ -219,12 +218,10 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
         }
 
         @Override
-        public void emitWatermark(Watermark watermark) {
-        }
+        public void emitWatermark(Watermark watermark) {}
 
         @Override
-        public void markIdle() {
-        }
+        public void markIdle() {}
 
         @Override
         public SourceOutput<Integer> createOutputForSplit(String splitId) {
@@ -232,7 +229,6 @@ public abstract class SourceReaderTestBase<SplitT extends SourceSplit> extends T
         }
 
         @Override
-        public void releaseOutputForSplit(String splitId) {
-        }
+        public void releaseOutputForSplit(String splitId) {}
     }
 }

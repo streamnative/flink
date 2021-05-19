@@ -35,7 +35,6 @@ public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryabl
      * Deserialize a consumer record into the given collector.
      *
      * @param message the {@code Message} to deserialize.
-     *
      * @throws IOException if the deserialization failed.
      */
     void deserialize(Message<?> message, Collector<T> collector) throws IOException;
@@ -45,7 +44,6 @@ public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryabl
      *
      * @param valueDeserializer the deserializer class used to deserialize the value.
      * @param <V> the value type.
-     *
      * @return A {@link MessageDeserializer} that deserialize the value with the given deserializer.
      */
     static <V> MessageDeserializer<V> valueOnly(DeserializationSchema<V> valueDeserializer) {

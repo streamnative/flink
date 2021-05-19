@@ -19,7 +19,6 @@
 package org.apache.flink.connector.pulsar.source.enumerator.initializer;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.connector.pulsar.source.enumerator.initializer.StartOffsetInitializer;
 import org.apache.flink.connector.pulsar.source.split.range.PartitionRange;
 
 import org.apache.pulsar.client.api.Message;

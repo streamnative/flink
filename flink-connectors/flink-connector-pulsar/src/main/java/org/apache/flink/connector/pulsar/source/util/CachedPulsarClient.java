@@ -33,9 +33,7 @@ import org.slf4j.Logger;
 
 import java.util.concurrent.ConcurrentMap;
 
-/**
- * Enable the sharing of same PulsarClient among tasks in a same process.
- */
+/** Enable the sharing of same PulsarClient among tasks in a same process. */
 public final class CachedPulsarClient {
 
     private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(CachedPulsarClient.class);
@@ -51,33 +49,36 @@ public final class CachedPulsarClient {
     }
 
     private static int getCacheSize() {
-        return Integer.parseInt(System.getProperty(PULSAR_CLIENT_CACHE_SIZE_KEY, DEFAULT_CACHE_SIZE));
+        return Integer.parseInt(
+                System.getProperty(PULSAR_CLIENT_CACHE_SIZE_KEY, DEFAULT_CACHE_SIZE));
     }
 
-    private static final RemovalListener<String, PulsarClientImpl> removalListener = notification -> {
-        String config = notification.getKey();
-        PulsarClientImpl client = notification.getValue();
-        LOG.debug(
-                "Evicting pulsar client {} with config {}, due to {}",
-                client,
-                config,
-                notification.getCause());
+    private static final RemovalListener<String, PulsarClientImpl> removalListener =
+            notification -> {
+                String config = notification.getKey();
+                PulsarClientImpl client = notification.getValue();
+                LOG.debug(
+                        "Evicting pulsar client {} with config {}, due to {}",
+                        client,
+                        config,
+                        notification.getCause());
 
-        close(config, client);
-    };
+                close(config, client);
+            };
 
-    private static final Cache<String, PulsarClientImpl> clientCache = CacheBuilder.newBuilder()
-            .maximumSize(getCacheSize())
-            .removalListener(removalListener)
-            .build();
+    private static final Cache<String, PulsarClientImpl> clientCache =
+            CacheBuilder.newBuilder()
+                    .maximumSize(getCacheSize())
+                    .removalListener(removalListener)
+                    .build();
 
-    private static PulsarClientImpl createPulsarClient(ClientConfigurationData clientConfig) throws PulsarClientException {
+    private static PulsarClientImpl createPulsarClient(ClientConfigurationData clientConfig)
+            throws PulsarClientException {
         PulsarClientImpl client;
         try {
             client = new PulsarClientImpl(clientConfig);
             LOG.debug(
-                    "Created a new instance of PulsarClientImpl for clientConf = {}",
-                    clientConfig);
+                    "Created a new instance of PulsarClientImpl for clientConf = {}", clientConfig);
         } catch (PulsarClientException e) {
             LOG.error("Failed to create PulsarClientImpl for clientConf = {}", clientConfig);
             throw e;
@@ -85,7 +86,8 @@ public final class CachedPulsarClient {
         return client;
     }
 
-    public static synchronized PulsarClientImpl getOrCreate(ClientConfigurationData config) throws PulsarClientException {
+    public static synchronized PulsarClientImpl getOrCreate(ClientConfigurationData config)
+            throws PulsarClientException {
         String key = serializeKey(config);
         PulsarClientImpl client = clientCache.getIfPresent(key);
 
@@ -104,8 +106,7 @@ public final class CachedPulsarClient {
                 client.close();
             } catch (PulsarClientException e) {
                 LOG.warn(
-                        String.format("Error while closing the Pulsar client %s", clientConfig),
-                        e);
+                        String.format("Error while closing the Pulsar client %s", clientConfig), e);
             }
         }
     }

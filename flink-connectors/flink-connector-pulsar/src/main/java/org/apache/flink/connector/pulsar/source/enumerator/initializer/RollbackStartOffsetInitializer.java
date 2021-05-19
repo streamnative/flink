@@ -30,7 +30,8 @@ import java.util.function.Supplier;
  * An implementation of {@link StartOffsetInitializer} to rollback the offsets by a certain
  * duration.
  *
- * <p>This implementation does not verify if data exists after the rollback performing on this initializer.
+ * <p>This implementation does not verify if data exists after the rollback performing on this
+ * initializer.
  *
  * <p>Package private and should be instantiated via {@link StartOffsetInitializer}.
  */

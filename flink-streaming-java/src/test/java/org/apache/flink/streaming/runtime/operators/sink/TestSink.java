@@ -216,7 +216,7 @@ public class TestSink implements Sink<Integer, String, String, String> {
         }
 
         @Override
-        public void processWatermark(Watermark watermark) throws IOException {
+        public void writeWatermark(Watermark watermark) throws IOException {
             watermarks.add(watermark);
         }
 

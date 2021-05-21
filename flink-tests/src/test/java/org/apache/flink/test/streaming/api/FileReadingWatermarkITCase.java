@@ -108,7 +108,7 @@ public class FileReadingWatermarkITCase {
             public void invoke(String value, SinkFunction.Context context) {}
 
             @Override
-            public void processWatermark(Watermark watermark) throws Exception {
+            public void writeWatermark(Watermark watermark) throws Exception {
                 if (watermark.getTimestamp() != lastWatermark) {
                     lastWatermark = watermark.getTimestamp();
                     numWatermarks.add(1);

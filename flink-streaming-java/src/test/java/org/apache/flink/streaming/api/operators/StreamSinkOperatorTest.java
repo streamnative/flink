@@ -124,7 +124,7 @@ public class StreamSinkOperatorTest extends TestLogger {
         }
 
         @Override
-        public void processWatermark(org.apache.flink.api.common.eventtime.Watermark watermark)
+        public void writeWatermark(org.apache.flink.api.common.eventtime.Watermark watermark)
                 throws Exception {
             watermarks.add(watermark);
         }

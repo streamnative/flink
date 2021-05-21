@@ -57,7 +57,7 @@ public interface SinkFunction<IN> extends Function, Serializable {
      * @throws Exception This method may throw exceptions. Throwing an exception will cause the
      *     operation to fail and may trigger recovery.
      */
-    default void processWatermark(Watermark watermark) throws Exception {}
+    default void writeWatermark(Watermark watermark) throws Exception {}
 
     /**
      * Context that {@link SinkFunction SinkFunctions } can use for getting additional data about an

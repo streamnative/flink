@@ -90,7 +90,7 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     public void processWatermark(Watermark mark) throws Exception {
         super.processWatermark(mark);
         this.currentWatermark = mark.getTimestamp();
-        sinkWriter.processWatermark(
+        sinkWriter.writeWatermark(
                 new org.apache.flink.api.common.eventtime.Watermark(mark.getTimestamp()));
     }
 

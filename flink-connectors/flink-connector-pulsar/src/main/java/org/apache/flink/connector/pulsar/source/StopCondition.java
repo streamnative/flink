@@ -54,7 +54,7 @@ public interface StopCondition extends Serializable {
                 }
             };
 
-    default void init(PartitionRange partition, Consumer<byte[]> consumer)
+    default void init(PartitionRange partition, Consumer<?> consumer)
             throws PulsarClientException {}
 
     static StopCondition stopAtMessageId(MessageId id) {
@@ -131,7 +131,7 @@ public interface StopCondition extends Serializable {
         MessageId lastId;
 
         @Override
-        public void init(PartitionRange partition, Consumer<byte[]> consumer)
+        public void init(PartitionRange partition, Consumer<?> consumer)
                 throws PulsarClientException {
             if (lastId == null) {
                 lastId = consumer.getLastMessageId();

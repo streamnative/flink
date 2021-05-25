@@ -47,7 +47,6 @@ import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.MessageId;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
-import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.impl.ConsumerImpl;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
 import org.apache.pulsar.client.impl.conf.ConsumerConfigurationData;
@@ -90,9 +89,8 @@ public class PulsarPartitionSplitReader<T>
         implements SplitReader<ParsedMessage<T>, PulsarPartitionSplit>, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionSplitReader.class);
 
-    private final PriorityQueue<PulsarPartitionReader> readerQueue = new PriorityQueue<>();
-    private final SimpleCollector<T> collector = new SimpleCollector<>();
-    private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
+    private final PriorityQueue<PulsarPartitionReader<T>> readerQueue = new PriorityQueue<>();
+    private final ConsumerConfigurationData<T> consumerConfigurationData;
     private final PulsarClient client;
     private final PulsarAdmin pulsarAdmin;
     private final MessageDeserializer<T> messageDeserializer;
@@ -105,7 +103,7 @@ public class PulsarPartitionSplitReader<T>
 
     public PulsarPartitionSplitReader(
             Configuration configuration,
-            ConsumerConfigurationData<byte[]> consumerConfigurationData,
+            ConsumerConfigurationData<T> consumerConfigurationData,
             PulsarClient client,
             PulsarAdmin pulsarAdmin,
             MessageDeserializer<T> messageDeserializer,
@@ -150,26 +148,20 @@ public class PulsarPartitionSplitReader<T>
                         && deadline.hasTimeLeft()
                         && !wakeup;
                 numRecords++) {
-            PulsarPartitionReader reader = readerQueue.poll();
+            PulsarPartitionReader<T> reader = readerQueue.poll();
             try {
-                Iterator<Message<?>> messages = reader.nextBatch();
+                Iterator<Message<T>> messages = reader.nextBatch();
                 if (messages.hasNext()) {
                     while (messages.hasNext()) {
-                        Message<?> message = messages.next();
+                        Message<T> message = messages.next();
 
                         Collection<ParsedMessage<T>> recordsForSplit =
                                 recordsBySplits.recordsForSplit(reader.getSplit().splitId());
-                        messageDeserializer.deserialize(message, collector);
-                        collector
-                                .getRecords()
-                                .forEach(
-                                        r ->
-                                                recordsForSplit.add(
-                                                        new ParsedMessage<>(
-                                                                r,
-                                                                message.getMessageId(),
-                                                                message.getEventTime())));
-                        collector.reset();
+                        recordsForSplit.add(
+                                new ParsedMessage<>(
+                                        message.getValue(),
+                                        message.getMessageId(),
+                                        message.getEventTime()));
                     }
                 }
                 if (reader.isStopped()) {
@@ -214,8 +206,8 @@ public class PulsarPartitionSplitReader<T>
         PartitionRange partition = split.getPartition();
         CompletableFuture<PulsarPartitionReader> completableFuture = null;
         try {
-            ConsumerConfigurationData<byte[]> conf = consumerConfigurationData.clone();
-            CompletableFuture<Consumer<byte[]>> subscribeFuture = new CompletableFuture<>();
+            ConsumerConfigurationData<T> conf = consumerConfigurationData.clone();
+            CompletableFuture<Consumer<T>> subscribeFuture = new CompletableFuture<>();
             if (!partition.getRange().equals(PulsarRange.FULL_RANGE)) {
                 conf.setKeySharedPolicy(
                         KeySharedPolicy.stickyHashRange().ranges(partition.getRange()));
@@ -227,10 +219,10 @@ public class PulsarPartitionSplitReader<T>
                             ? StartOffsetInitializer.offset(lastConsumedId, false)
                             : split.getStartOffsetInitializer();
             // initialize offset on builder for absolute offsets
-            CreationConfiguration creationConfiguration = new CreationConfiguration(conf);
+            CreationConfiguration<T> creationConfiguration = new CreationConfiguration<>(conf);
             startOffsetInitializer.initializeBeforeCreation(partition, creationConfiguration);
-            ConsumerImpl<byte[]> consumer =
-                    new ConsumerImpl<byte[]>(
+            ConsumerImpl<T> consumer =
+                    new ConsumerImpl<T>(
                             (PulsarClientImpl) client,
                             partition.getTopic(),
                             creationConfiguration.getConsumerConfigurationData(),
@@ -240,7 +232,7 @@ public class PulsarPartitionSplitReader<T>
                             subscribeFuture,
                             creationConfiguration.getInitialMessageId(),
                             creationConfiguration.getRollbackInS(),
-                            Schema.BYTES,
+                            messageDeserializer.getSchema(),
                             null,
                             true) {};
             // initialize offset on reader for time-based seeking

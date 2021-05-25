@@ -37,23 +37,21 @@ import java.util.Iterator;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** Using to reade data form partition. */
-class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closeable {
+class PulsarPartitionReader<V> implements Comparable<PulsarPartitionReader<V>>, Closeable {
     private static final Logger LOG = LoggerFactory.getLogger(PulsarPartitionReader.class);
 
     private static final long MAX_BACKOFF = 1L << 30;
 
     private final PulsarPartitionSplit split;
-    private final ConsumerImpl<byte[]> consumer;
+    private final ConsumerImpl<V> consumer;
     private final StopCondition stopCondition;
 
-    @Nullable private Message<?> lastMessage;
+    @Nullable private Message<V> lastMessage;
     private long backOff = 1;
     private boolean stopped;
 
     public PulsarPartitionReader(
-            PulsarPartitionSplit split,
-            ConsumerImpl<byte[]> consumer,
-            StopCondition stopCondition) {
+            PulsarPartitionSplit split, ConsumerImpl<V> consumer, StopCondition stopCondition) {
         this.split = checkNotNull(split);
         this.consumer = checkNotNull(consumer);
         this.stopCondition = checkNotNull(stopCondition);
@@ -63,14 +61,14 @@ class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closea
         return split;
     }
 
-    public Iterator<Message<?>> nextBatch() throws PulsarClientException {
+    public Iterator<Message<V>> nextBatch() throws PulsarClientException {
         if (consumer.hasMessageAvailable()) {
-            Messages<byte[]> messages = consumer.batchReceive();
-            Iterator<Message<byte[]>> messageIterator = messages.iterator();
+            Messages<V> messages = consumer.batchReceive();
+            Iterator<Message<V>> messageIterator = messages.iterator();
             if (messageIterator.hasNext()) {
                 backOff = 1;
-                return new Iterator<Message<?>>() {
-                    @Nullable Message<byte[]> next = initNext();
+                return new Iterator<Message<V>>() {
+                    @Nullable Message<V> next = initNext();
 
                     @Override
                     public boolean hasNext() {
@@ -78,18 +76,18 @@ class PulsarPartitionReader implements Comparable<PulsarPartitionReader>, Closea
                     }
 
                     @Override
-                    public Message<?> next() {
+                    public Message<V> next() {
                         lastMessage = next;
                         next = initNext();
                         return lastMessage;
                     }
 
                     @Nullable
-                    private Message<byte[]> initNext() {
+                    private Message<V> initNext() {
                         if (!messageIterator.hasNext()) {
                             return null;
                         }
-                        Message<byte[]> nextMsg = messageIterator.next();
+                        Message<V> nextMsg = messageIterator.next();
                         switch (stopCondition.shouldStop(split.getPartition(), nextMsg)) {
                             case STOP_BEFORE:
                                 stopped = true;

@@ -21,15 +21,19 @@ package org.apache.flink.connector.pulsar.source.reader.deserializer;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.connector.pulsar.common.FlinkSchema;
+import org.apache.flink.connector.pulsar.common.PulsarContextAware;
 import org.apache.flink.util.Collector;
 
 import org.apache.pulsar.client.api.Message;
+import org.apache.pulsar.client.api.Schema;
 
 import java.io.IOException;
 import java.io.Serializable;
 
 /** An interface for the deserialization of Pulsar messages. */
-public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryable<T> {
+public interface MessageDeserializer<T>
+        extends Serializable, ResultTypeQueryable<T>, PulsarContextAware<T> {
 
     /**
      * Deserialize a consumer record into the given collector.
@@ -37,7 +41,7 @@ public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryabl
      * @param message the {@code Message} to deserialize.
      * @throws IOException if the deserialization failed.
      */
-    void deserialize(Message<?> message, Collector<T> collector) throws IOException;
+    void deserialize(Message<T> message, Collector<T> collector) throws IOException;
 
     /**
      * Wraps a Flink {@link DeserializationSchema} to a {@link MessageDeserializer}.
@@ -51,8 +55,13 @@ public interface MessageDeserializer<T> extends Serializable, ResultTypeQueryabl
             private static final long serialVersionUID = -765990803584315049L;
 
             @Override
-            public void deserialize(Message<?> message, Collector<V> collector) throws IOException {
-                valueDeserializer.deserialize(message.getData(), collector);
+            public Schema<V> getSchema() {
+                return new FlinkSchema<>(Schema.BYTES.getSchemaInfo(), null, valueDeserializer);
+            }
+
+            @Override
+            public void deserialize(Message<V> message, Collector<V> collector) throws IOException {
+                collector.collect(message.getValue());
             }
 
             @Override

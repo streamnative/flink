@@ -116,19 +116,19 @@ public interface StartOffsetInitializer extends Serializable {
     }
 
     /** config class to create consumer. */
-    class CreationConfiguration {
+    class CreationConfiguration<T> {
 
-        private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
+        private final ConsumerConfigurationData<T> consumerConfigurationData;
 
         @Nullable private MessageId initialMessageId;
 
         private long rollbackInS = 0;
 
-        public CreationConfiguration(ConsumerConfigurationData<byte[]> consumerConfigurationData) {
+        public CreationConfiguration(ConsumerConfigurationData<T> consumerConfigurationData) {
             this.consumerConfigurationData = consumerConfigurationData;
         }
 
-        public ConsumerConfigurationData<byte[]> getConsumerConfigurationData() {
+        public ConsumerConfigurationData<T> getConsumerConfigurationData() {
             return consumerConfigurationData;
         }
 

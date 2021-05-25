@@ -78,7 +78,7 @@ public class PulsarSourceBuilder<OUT> {
     // The pulsar client configuration.
     private final ClientConfigurationData clientConfigurationData = new ClientConfigurationData();
     // The detailed consume configuration for customize the consuming behavior from pulsar client.
-    private final ConsumerConfigurationData<byte[]> consumerConfigurationData =
+    private final ConsumerConfigurationData<OUT> consumerConfigurationData =
             new ConsumerConfigurationData<>();
 
     PulsarSourceBuilder() {
@@ -150,7 +150,7 @@ public class PulsarSourceBuilder<OUT> {
     }
 
     public PulsarSourceBuilder<OUT> configurePulsarConsumer(
-            Consumer<ConsumerConfigurationData<byte[]>> configurationConsumer) {
+            Consumer<ConsumerConfigurationData<OUT>> configurationConsumer) {
         configurationConsumer.accept(consumerConfigurationData);
         return this;
     }

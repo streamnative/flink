@@ -84,7 +84,7 @@ public class PulsarSource<OUT>
     // The configurations.
     private final Configuration configuration;
     private final ClientConfigurationData pulsarConfiguration;
-    private final ConsumerConfigurationData<byte[]> consumerConfigurationData;
+    private final ConsumerConfigurationData<OUT> consumerConfigurationData;
     private final SplitSchedulingStrategy splitSchedulingStrategy;
 
     private final String adminUrl;
@@ -99,7 +99,7 @@ public class PulsarSource<OUT>
             MessageDeserializer<OUT> messageDeserializer,
             Configuration configuration,
             ClientConfigurationData pulsarConfiguration,
-            ConsumerConfigurationData<byte[]> consumerConfigurationData,
+            ConsumerConfigurationData<OUT> consumerConfigurationData,
             SplitSchedulingStrategy splitSchedulingStrategy) {
         this.subscriber = checkNotNull(subscriber);
         this.startOffsetInitializer = checkNotNull(startOffsetInitializer);

@@ -606,6 +606,9 @@ public class SubtaskCheckpointCoordinatorTest {
         public void processWatermark(Watermark mark) throws Exception {}
 
         @Override
+        public void markIdle() throws Exception {}
+
+        @Override
         public void processLatencyMarker(LatencyMarker latencyMarker) {}
     }
 

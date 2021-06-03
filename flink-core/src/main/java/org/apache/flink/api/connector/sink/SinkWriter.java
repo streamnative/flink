@@ -56,6 +56,15 @@ public interface SinkWriter<InputT, CommT, WriterStateT> extends AutoCloseable {
     default void writeWatermark(Watermark watermark) throws IOException {}
 
     /**
+     * Marks the writer as idle. This function is called when all sink inputs are idle.
+     *
+     * <p>A writer becomes active again as soon as a record or watermark is received.
+     *
+     * @throws Exception if fail to mark idle.
+     */
+    default void markIdle() throws Exception {}
+
+    /**
      * Prepare for a commit.
      *
      * <p>This will be called before we checkpoint the Writer's state in Streaming execution mode.

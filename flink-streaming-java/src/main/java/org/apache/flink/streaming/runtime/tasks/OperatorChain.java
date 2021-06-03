@@ -391,7 +391,8 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>>
                     try {
                         operatorWrapper.getStreamOperator().markIdle();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        // TODO - deal with user exception
+                        throw new RuntimeException(e.getMessage(), e);
                     }
                 }
             }

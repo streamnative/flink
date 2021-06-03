@@ -385,14 +385,16 @@ public class OperatorChain<OUT, OP extends StreamOperator<OUT>>
         if (!status.equals(this.streamStatus)) {
             this.streamStatus = status;
 
-            // go forward through the operator chain and idle each operator
-            for (StreamOperatorWrapper<?, ?> operatorWrapper : getAllOperators()) {
-                if (!operatorWrapper.isClosed()) {
-                    try {
-                        operatorWrapper.getStreamOperator().markIdle();
-                    } catch (Exception e) {
-                        // TODO - deal with user exception
-                        throw new RuntimeException(e.getMessage(), e);
+            if (status.isIdle()) {
+                // go forward through the operator chain and idle each operator
+                for (StreamOperatorWrapper<?, ?> operatorWrapper : getAllOperators()) {
+                    if (!operatorWrapper.isClosed()) {
+                        try {
+                            operatorWrapper.getStreamOperator().markIdle();
+                        } catch (Exception e) {
+                            // TODO - deal with user exception
+                            throw new RuntimeException(e.getMessage(), e);
+                        }
                     }
                 }
             }

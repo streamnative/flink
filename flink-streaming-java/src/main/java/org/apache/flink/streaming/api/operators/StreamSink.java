@@ -70,6 +70,12 @@ public class StreamSink<IN> extends AbstractUdfStreamOperator<Object, SinkFuncti
                 new org.apache.flink.api.common.eventtime.Watermark(mark.getTimestamp()));
     }
 
+    @Override
+    public void markIdle() throws Exception {
+        super.markIdle();
+        userFunction.markIdle();
+    }
+
     private class SimpleContext<IN> implements SinkFunction.Context {
 
         private StreamRecord<IN> element;

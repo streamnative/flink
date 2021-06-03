@@ -89,6 +89,11 @@ public final class StateBootstrapWrapperOperator<
     }
 
     @Override
+    public void markIdle() throws Exception {
+        operator.markIdle();
+    }
+
+    @Override
     public void processLatencyMarker(LatencyMarker latencyMarker) throws Exception {
         operator.processLatencyMarker(latencyMarker);
     }

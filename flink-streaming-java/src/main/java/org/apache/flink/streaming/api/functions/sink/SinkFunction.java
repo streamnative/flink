@@ -60,6 +60,16 @@ public interface SinkFunction<IN> extends Function, Serializable {
     default void writeWatermark(Watermark watermark) throws Exception {}
 
     /**
+     * Marks the sink as idle. This function is called when all sink inputs are idle.
+     *
+     * <p>A sink becomes active again as soon as a record or watermark is received.
+     *
+     * @throws Exception This method may throw exceptions. Throwing an exception will cause the
+     *     operation to fail and may trigger recovery.
+     */
+    default void markIdle() throws Exception {}
+
+    /**
      * Context that {@link SinkFunction SinkFunctions } can use for getting additional data about an
      * input record.
      *

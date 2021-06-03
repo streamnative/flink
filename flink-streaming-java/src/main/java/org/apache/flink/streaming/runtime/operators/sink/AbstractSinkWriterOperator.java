@@ -95,6 +95,12 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     }
 
     @Override
+    public void markIdle() throws Exception {
+        super.markIdle();
+        sinkWriter.markIdle();
+    }
+
+    @Override
     public void endInput() throws Exception {
         sendCommittables(sinkWriter.prepareCommit(true));
     }

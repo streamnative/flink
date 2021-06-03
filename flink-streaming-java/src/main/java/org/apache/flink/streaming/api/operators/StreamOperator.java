@@ -133,6 +133,18 @@ public interface StreamOperator<OUT>
     /** Provides a context to initialize all state in the operator. */
     void initializeState(StreamTaskStateInitializer streamTaskStateManager) throws Exception;
 
+
+    // ------------------------------------------------------------------------
+    //  Watermark handling
+    // ------------------------------------------------------------------------
+
+    /**
+     * Marks the operator as idle due to a stream status change.
+     * @throws Exception Throwing an exception here causes the operator to fail and go into
+     *     recovery.
+     */
+    void markIdle() throws Exception;
+
     // ------------------------------------------------------------------------
     //  miscellaneous
     // ------------------------------------------------------------------------

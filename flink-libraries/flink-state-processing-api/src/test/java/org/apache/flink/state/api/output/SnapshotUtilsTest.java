@@ -145,5 +145,10 @@ public class SnapshotUtilsTest {
             ACTUAL_ORDER_TRACKING.add("getCurrentKey");
             return null;
         }
+
+        @Override
+        public void markIdle() throws Exception {
+            ACTUAL_ORDER_TRACKING.add("markIdle");
+        }
     }
 }

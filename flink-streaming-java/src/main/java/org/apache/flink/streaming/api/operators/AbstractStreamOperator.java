@@ -661,6 +661,9 @@ public abstract class AbstractStreamOperator<OUT>
     }
 
     @Override
+    public void markIdle() throws Exception {}
+
+    @Override
     public OperatorID getOperatorID() {
         return config.getOperatorID();
     }

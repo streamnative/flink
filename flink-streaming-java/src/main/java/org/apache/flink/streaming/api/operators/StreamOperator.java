@@ -24,6 +24,7 @@ import org.apache.flink.runtime.checkpoint.CheckpointOptions;
 import org.apache.flink.runtime.jobgraph.OperatorID;
 import org.apache.flink.runtime.state.CheckpointStreamFactory;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 import org.apache.flink.util.Disposable;
 
 import java.io.Serializable;
@@ -139,11 +140,13 @@ public interface StreamOperator<OUT>
     // ------------------------------------------------------------------------
 
     /**
-     * Marks the operator as idle due to a stream status change.
+     * This method is called when a stream status change on the operator input(s) causes
+     * an overall status change to the operator, e.g. when all inputs transition to idle.
+     *
      * @throws Exception Throwing an exception here causes the operator to fail and go into
      *     recovery.
      */
-    void markIdle() throws Exception;
+    void processStreamStatus(StreamStatus status) throws Exception;
 
     // ------------------------------------------------------------------------
     //  miscellaneous

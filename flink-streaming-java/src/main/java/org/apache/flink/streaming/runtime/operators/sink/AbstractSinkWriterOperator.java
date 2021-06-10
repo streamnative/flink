@@ -28,6 +28,7 @@ import org.apache.flink.streaming.api.operators.InternalTimerService;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 
 import java.util.List;
@@ -95,9 +96,11 @@ abstract class AbstractSinkWriterOperator<InputT, CommT> extends AbstractStreamO
     }
 
     @Override
-    public void markIdle() throws Exception {
-        super.markIdle();
-        sinkWriter.markIdle();
+    public void processStreamStatus(StreamStatus status) throws Exception {
+        super.processStreamStatus(status);
+        if (status.isIdle()) {
+            sinkWriter.markIdle();
+        }
     }
 
     @Override

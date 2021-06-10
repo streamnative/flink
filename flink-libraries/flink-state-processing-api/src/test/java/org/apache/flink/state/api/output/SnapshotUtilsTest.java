@@ -31,6 +31,8 @@ import org.apache.flink.streaming.api.operators.StreamOperator;
 import org.apache.flink.streaming.api.operators.StreamTaskStateInitializer;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
+
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -147,8 +149,8 @@ public class SnapshotUtilsTest {
         }
 
         @Override
-        public void markIdle() throws Exception {
-            ACTUAL_ORDER_TRACKING.add("markIdle");
+        public void processStreamStatus(StreamStatus status) throws Exception {
+            ACTUAL_ORDER_TRACKING.add("processStreamStatus");
         }
     }
 }

@@ -639,7 +639,7 @@ public abstract class AbstractStreamOperator<OUT>
     }
 
     public final void emitStreamStatus(StreamStatus streamStatus) throws Exception {
-        output.emitStreamStatus(streamStatus);
+        processStreamStatus(streamStatus);
     }
 
     private void emitStreamStatus(StreamStatus streamStatus, int index) throws Exception {
@@ -648,7 +648,7 @@ public abstract class AbstractStreamOperator<OUT>
             processWatermark(new Watermark(combinedWatermark.getCombinedWatermark()));
         }
         if (wasIdle != combinedWatermark.isIdle()) {
-            output.emitStreamStatus(streamStatus);
+            processStreamStatus(streamStatus);
         }
     }
 
@@ -661,7 +661,9 @@ public abstract class AbstractStreamOperator<OUT>
     }
 
     @Override
-    public void markIdle() throws Exception {}
+    public void processStreamStatus(StreamStatus status) throws Exception {
+        output.emitStreamStatus(status);
+    }
 
     @Override
     public OperatorID getOperatorID() {

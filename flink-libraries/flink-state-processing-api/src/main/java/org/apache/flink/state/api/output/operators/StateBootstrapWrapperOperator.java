@@ -90,8 +90,8 @@ public final class StateBootstrapWrapperOperator<
     }
 
     @Override
-    public void markIdle() throws Exception {
-        operator.markIdle();
+    public void processStreamStatus(StreamStatus status) throws Exception {
+        operator.processStreamStatus(status);
     }
 
     @Override

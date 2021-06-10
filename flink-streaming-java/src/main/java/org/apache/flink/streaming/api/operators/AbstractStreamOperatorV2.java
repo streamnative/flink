@@ -536,12 +536,14 @@ public abstract class AbstractStreamOperatorV2<OUT>
             processWatermark(new Watermark(combinedWatermark.getCombinedWatermark()));
         }
         if (wasIdle != combinedWatermark.isIdle()) {
-            output.emitStreamStatus(streamStatus);
+            processStreamStatus(streamStatus);
         }
     }
 
     @Override
-    public void markIdle() throws Exception {}
+    public void processStreamStatus(StreamStatus status) throws Exception {
+        output.emitStreamStatus(status);
+    }
 
     @Override
     public OperatorID getOperatorID() {

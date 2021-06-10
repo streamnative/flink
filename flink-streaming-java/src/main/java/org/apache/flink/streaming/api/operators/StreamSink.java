@@ -22,6 +22,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.runtime.streamrecord.LatencyMarker;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.streaming.runtime.streamstatus.StreamStatus;
 import org.apache.flink.streaming.runtime.tasks.ProcessingTimeService;
 
 /** A {@link StreamOperator} for executing {@link SinkFunction SinkFunctions}. */
@@ -71,9 +72,11 @@ public class StreamSink<IN> extends AbstractUdfStreamOperator<Object, SinkFuncti
     }
 
     @Override
-    public void markIdle() throws Exception {
-        super.markIdle();
-        userFunction.markIdle();
+    public void processStreamStatus(StreamStatus status) throws Exception {
+        super.processStreamStatus(status);
+        if (status.isIdle()) {
+            userFunction.markIdle();
+        }
     }
 
     private class SimpleContext<IN> implements SinkFunction.Context {
